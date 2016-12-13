@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<defaultsMap>
+    <entry>
+        <key>marathon_running</key>
+        <value>false</value>
+    </entry>
+    <entry>
+        <key>marathon_schedule_service</key>
+        <value>horaro</value>
+    </entry>
+    <entry>
+        <key>marathon_schedule_service</key>
+        <value>horaro</value>
+    </entry>
+    <entry>
+        <key>marathon_horaro_id</key>
+        <value>NONE</value>
+    </entry>
+    <entry>
+        <key>marathon_name</key>
+        <value>Generic Marathon Name</value>
+    </entry>
+    <entry>
+        <key>marathon_channel</key>
+        <value>gamesdonequick</value>
+    </entry>
+    <entry>
+        <key>enable_meme_mode</key>
+        <value>false</value>
+    </entry>
+    <entry>
+        <key>meme_mode_race_placeholder</key>
+        <value>https://i.imgur.com/14b3mzX.gif</value>
+    </entry>
+</defaultsMap>

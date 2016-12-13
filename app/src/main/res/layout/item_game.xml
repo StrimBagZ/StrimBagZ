@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:paddingBottom="8dp">
+
+    <ImageView
+        android:id="@+id/imgBox"
+        android:layout_alignParentTop="true"
+        android:contentDescription="@string/game_box"
+        android:layout_height="267dp"
+        android:layout_width="192dp" />
+
+    <View
+        android:layout_width="192dp"
+        android:layout_alignBottom="@+id/imgBox"
+        android:background="@drawable/player_gradient_bottom"
+        android:layout_height="60dp" />
+
+    <TextView
+        android:id="@+id/gameTitle"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="marquee"
+        android:textStyle="bold"
+        android:textColor="@android:color/primary_text_dark"
+        android:layout_alignBottom="@+id/imgBox"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_alignEnd="@+id/imgBox"
+        android:maxLines="1" />
+
+</RelativeLayout>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="quality_entries" translatable="false">
+        <item>Mobile</item>
+        <item>Low</item>
+        <item>Medium</item>
+        <item>High</item>
+        <item>Source</item>
+    </string-array>
+    <string-array name="quality_entries_value" translatable="false">
+        <item>mobile</item>
+        <item>low</item>
+        <item>medium</item>
+        <item>high</item>
+        <item>source</item>
+    </string-array>
+</resources>

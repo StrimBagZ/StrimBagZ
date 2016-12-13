@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SGDQ Stream status: Loading..."
+            android:id="@+id/status"
+            android:layout_marginTop="23dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:layout_marginStart="23dp" />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Login"
+            android:id="@+id/loginButton"
+            android:layout_below="@+id/status"
+            android:layout_alignParentStart="true" />
+        <Button
+            android:id="@+id/startVideo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Start Player"
+            android:layout_alignTop="@+id/loginButton"
+            android:layout_toStartOf="@+id/button2" />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Refresh"
+            android:id="@+id/button2"
+            android:layout_alignTop="@+id/startVideo"
+            android:layout_alignParentEnd="true"
+            android:layout_marginEnd="84dp" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New Button"
+            android:id="@+id/btn_Test"
+            android:layout_below="@+id/loginButton"
+            android:layout_alignParentStart="true" />
+</RelativeLayout>

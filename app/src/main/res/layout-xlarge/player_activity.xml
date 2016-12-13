@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright 2015 Nicola Fäßler
+  ~
+  ~ This file is part of StrimBagZ.
+  ~
+  ~ StrimBagZ is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:screenOrientation="landscape"
+    android:configChanges="keyboardHidden|orientation|screenSize"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <android.support.v4.widget.DrawerLayout
+        android:id="@+id/drawerLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="wrap_content"
+            android:background="@android:color/white"
+            android:layout_height="fill_parent"
+            android:layout_weight="3">
+
+            <!-- The main content view -->
+            <FrameLayout
+                android:id="@+id/content"
+                android:layout_height="match_parent"
+                android:layout_width="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/black">
+
+                <com.google.android.exoplayer.AspectRatioFrameLayout
+                    android:id="@+id/aspectRatio"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <net.lubot.strimbagzrewrite.util.VideoSurfaceView
+                        android:id="@+id/videoSurface"
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent"
+                        android:layout_gravity="center_vertical" />
+
+                    <!-- Media Top Controller -->
+                    <include
+                        layout="@layout/newmedia_controller" />
+
+                </com.google.android.exoplayer.AspectRatioFrameLayout>
+
+                <RelativeLayout
+                    android:id="@+id/surface_error"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/gradient"
+                    android:visibility="invisible">
+
+                    <ProgressBar
+                        android:id="@+id/surface_progress"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerInParent="true"
+                        android:visibility="gone"/>
+                    <TextView
+                        android:id="@+id/surface_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@android:color/white"
+                        android:layout_centerInParent="true"
+                        android:layout_below="@id/surface_progress"
+                        android:visibility="gone"/>
+                </RelativeLayout>
+
+                <!-- Media Top Controller -->
+                <!--
+                <include
+                    layout="@layout/media_topcontroller" />
+                    -->
+
+            </FrameLayout>
+
+            <!-- Overlay -->
+            <LinearLayout
+                android:orientation="vertical"
+                android:id="@+id/overlayStream"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone">
+
+                <RelativeLayout
+                    android:id="@+id/overlayToolbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/abc_action_bar_default_height_material"
+                    android:background="@color/PrimaryDarkColor">
+
+                    <ImageButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:srcCompat="@drawable/ic_close"
+                        android:background="@android:color/transparent"
+                        android:id="@+id/overlayClose"
+                        android:layout_centerVertical="true"
+                        android:layout_alignParentStart="true"
+                        android:layout_marginLeft="5dp"/>
+
+                    <ProgressBar
+                        android:id="@+id/overlayLoading"
+                        android:indeterminate="true"
+                        android:indeterminateDrawable="@xml/progressbar_white"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_alignParentEnd="true"
+                        android:layout_marginEnd="5dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceMedium"
+                        android:textColor="@android:color/white"
+                        android:paddingLeft="5dp"
+                        android:text="Medium Text"
+                        android:id="@+id/overlayTitle"
+                        android:layout_centerVertical="true"
+                        android:layout_toEndOf="@+id/overlayClose" />
+
+                </RelativeLayout>
+
+                <FrameLayout
+                    android:id="@+id/overlayWebView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                </FrameLayout>
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="2dp"
+                android:layout_height="match_parent"
+                android:minWidth="2dp"
+                android:background="@color/twitch_grey_dark"
+                android:visibility="visible" />
+
+            <RelativeLayout
+                android:id="@id/chatContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right"
+                android:layout_weight="3">
+
+                <LinearLayout
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:layout_width="0px"
+                    android:layout_height="0px"/>
+                <FrameLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:textColor="@android:color/black"
+                    android:id="@+id/chatListView"
+                    android:visibility="visible" />
+            </RelativeLayout>
+        </LinearLayout>
+
+        <!-- Channel Info drawer -->
+        <include
+            android:id="@+id/drawer"
+            layout="@layout/drawer_channel_description_new" />
+
+        <!-- Viewer List drawer -->
+        <include
+            android:id="@+id/viewerListDrawer"
+            layout="@layout/drawer_viewer_list" />
+
+    </android.support.v4.widget.DrawerLayout>
+
+</LinearLayout>

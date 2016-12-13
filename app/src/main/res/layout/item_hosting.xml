@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:layout_marginBottom="8dp">
+
+    <ImageView
+        android:id="@+id/previewImage"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:background="@drawable/player_gradient_bottom"
+        android:layout_height="200dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp" />
+
+    <TextView
+        android:id="@+id/hostingTarget"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Test hosting TrevPerson"
+        android:textSize="20sp"
+        android:textColor="@android:color/white"
+        android:layout_marginStart="4dp"
+        android:layout_above="@+id/streamTitle"
+        android:layout_alignStart="@+id/previewImage"
+        android:layout_alignEnd="@+id/previewImage" />
+
+    <TextView
+        android:id="@+id/streamTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="100% Speedruns"
+        android:textSize="16sp"
+        android:textColor="@android:color/white"
+        android:layout_marginStart="0dp"
+        android:layout_marginBottom="25dp"
+        android:layout_alignBottom="@+id/previewImage"
+        android:layout_alignStart="@+id/hostingTarget"
+        android:layout_alignEnd="@+id/previewImage" />
+
+    <TextView
+        android:id="@+id/nowPlaying"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:text="playing The Legend of Zelda: Majora's... for 466 viewers"
+        android:textSize="14sp"
+        android:textColor="@android:color/white"
+        android:layout_marginStart="0dp"
+        android:layout_marginBottom="8dp"
+        android:layout_alignBottom="@+id/previewImage"
+        android:layout_alignStart="@+id/streamTitle"
+        android:layout_alignEnd="@+id/previewImage" />
+
+</RelativeLayout>

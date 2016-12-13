@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:id="@+id/surface_controller"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:visibility="invisible"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <RelativeLayout
+        android:gravity="top"
+        android:background="@drawable/player_gradient_top"
+        android:layout_width="wrap_content"
+        android:layout_height="45dp">
+
+    <ImageButton
+        android:id="@+id/btn_viewer_list"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        app:srcCompat="@drawable/ic_viewer_list"
+        android:background="@android:color/transparent"
+        android:contentDescription="Viewer List"
+        android:paddingStart="10dp"
+        android:paddingEnd="0dp"/>
+
+    <ImageButton
+        android:id="@+id/btn_quality"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        app:srcCompat="@drawable/ic_settings"
+        android:background="@android:color/transparent"
+        android:contentDescription="Quality"
+        android:layout_marginStart="25dp"
+        android:layout_alignParentTop="true"
+        android:layout_toEndOf="@+id/btn_viewer_list" />
+
+        <ImageButton
+        android:id="@+id/btn_favorite"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        app:srcCompat="@drawable/ic_favorite_border"
+        android:background="@android:color/transparent"
+        android:contentDescription="Favorite"
+        android:layout_marginEnd="25dp"
+        android:layout_alignParentTop="true"
+        android:layout_toStartOf="@+id/btn_info" />
+
+    <ImageButton
+        android:id="@+id/btn_info"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        app:srcCompat="@drawable/ic_info"
+        android:background="@android:color/transparent"
+        android:contentDescription="Channel Description"
+        android:paddingRight="1dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:visibility="visible"/>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:gravity="bottom"
+        android:layout_width="wrap_content"
+        android:background="@drawable/player_gradient_bottom"
+        android:layout_height="45dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true">
+
+        <ImageButton
+            android:id="@+id/btn_srl"
+            android:layout_width="65dp"
+            android:layout_height="match_parent"
+            android:src="@drawable/ic_srlicon"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true"
+            android:visibility="invisible"
+            android:background="@android:color/transparent"
+            android:paddingStart="10dp"
+            android:paddingEnd="0dp"/>
+
+
+        <ImageButton
+            android:id="@+id/btn_fullscreen"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            app:srcCompat="@drawable/ic_fullscreen"
+            android:background="@android:color/transparent"
+            android:paddingRight="1dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:visibility="visible"/>
+    </RelativeLayout>
+
+</RelativeLayout>

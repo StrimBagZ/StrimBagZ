@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group>
+        <item
+            android:id="@+id/chatRooms"
+            android:title="Change Chat Room"/>
+        <item
+            android:id="@+id/player_share"
+            android:title="Share" />
+    </group>
+</menu>

@@ -1,0 +1,45 @@
+{
+  "project_info": {
+    "project_number": "603265099852",
+    "firebase_url": "https://strimbagz.firebaseio.com",
+    "project_id": "strimbagz",
+    "storage_bucket": "strimbagz.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:603265099852:android:02f3eb5ce8adca00",
+        "android_client_info": {
+          "package_name": "net.lubot.strimbagz"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "603265099852-n9c6tutg33e1qfeu3rh9727gnqlnmuqu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaANO-UcPxqAC2qLNZfEuDeB7Ex0xREhs"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 2,
+          "analytics_property": {
+            "tracking_id": "UA-75542040-1"
+          }
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

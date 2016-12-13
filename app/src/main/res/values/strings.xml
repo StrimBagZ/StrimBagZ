@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright 2013-2014 Paul Stöhr
+  ~
+  ~ This file is part of TD.
+  ~
+  ~ TD is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<resources xmlns:xliff="http://schemas.android.com/tools">
+    <!-- The user visible name of the application. [CHAR LIMIT=20] -->
+    <string name="application_name">Stream Player</string>
+
+    <string name="enable_background_audio">Play in background</string>
+
+    <string name="video">Video</string>
+
+    <string name="audio">Audio</string>
+
+    <string name="text">Text</string>
+
+    <string name="logging">Logging</string>
+
+    <string name="logging_normal">Normal</string>
+
+    <string name="logging_verbose">Verbose</string>
+
+    <string name="retry">Retry</string>
+
+    <string name="off">[off]</string>
+
+    <string name="on">[on]</string>
+
+    <string name="drm_error_not_supported">Protected content not supported on API levels below 18</string>
+
+    <string name="drm_error_unsupported_scheme">This device does not support the required DRM scheme</string>
+
+    <string name="drm_error_unknown">An unknown DRM error occurred</string>
+
+    <string name="failed">Playback failed</string>
+
+    <!-- General -->
+    <string name="app_name">StrimBagZ</string>
+    <string name="app_id">44847EF3</string>
+
+    <!-- Navigation -->
+    <string name="navigation_open">Open</string>
+    <string name="navigation_close">Close</string>
+    <string-array name="navigation">
+        <item>@string/online_title</item>
+        <item>@string/favorites_title</item>
+        <item>@string/game_title</item>
+        <item>@string/preference_title</item>
+        <item>@string/feedback_title</item>
+    </string-array>
+
+    <string name="feedback_title">Feedback</string>
+    <string name="event_title">Event</string>
+
+    <!-- ActionBarItems -->
+    <string name="action_refresh">Refresh</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_search">Search</string>
+    <string name="action_search_hint">Search stream</string>
+    <string name="action_route" />
+
+    <!-- ErrorMessages -->
+    <string name="error_service_unavailable">Service Unavailable\n Hopefully Twitch fixes their stuff fast</string>
+    <string name="error_unexpected">A unicorn has blocked the request, please contact the developer.</string>
+    <string name="error_connection_error_title">Connexion error</string>
+    <string name="error_connection_error_message">A connection error occurred. Please verify
+        that you are connected to an EDGE, 3G or Wifi network.
+    </string>
+    <string name="error_data_error_title">Incorrect data</string>
+    <string name="error_data_error_message">Received data invalid</string>
+    <string name="error_stream_offline">Stream offline :(</string>
+    <string name="error_no_player_title">No video player installed</string>
+    <string name="error_no_player_message">In order to play videos you need
+        to install an external video player, like VLC or MX Player.</string>
+    <string name="error_internal_player">Unable to use internal Player</string>
+    <string name="error_no_archived_videos">Twitch changed its API, videos are currently broken :(</string>
+
+    <!-- DialogMessages -->
+    <string name="dialog_error_title">Error</string>
+    <string name="dialog_button_retry">Retry</string>
+    <string name="dialog_progress_title">Loading</string>
+    <string name="dialog_progress_message">Loading in progress…</string>
+    <string name="dialog_username_title">Username</string>
+    <string name="dialog_playlist_title">Video Playlist</string>
+    <string name="dialog_stream_quality_title"> Default Quality</string>
+    <string name="dialog_stream_quality_mobile_title">Default Quality (Mobile Data)</string>
+    <string name="dialog_stream_quality_default_value">Medium</string>
+    <string name="dialog_stream_quality_mobile_default_value">Mobile</string>
+
+    <!-- Favorites -->
+    <string name="online_title">Currently Live</string>
+    <string name="favorites_title">Following</string>
+    <string name="following_title">Following</string>
+    <string name="followed_games_title">Followed Games</string>
+    <string name="followed_games_empty">No live streams for any games you follow</string>
+
+    <string name="following_user_now">You\'re now following %1$s</string>
+    <string name="unfollowing_user_now">You\'re not following %1$s anymore</string>
+    <string name="error_following">Couldn\'t follow %1$s, please try again later</string>
+    <string name="error_unfollowing">Couldn\'t unfollow %1$s, please try again later</string>
+
+    <!-- Context Menus -->
+    <string name="cnt_menu_stream">"Open Stream"</string>
+    <string name="cnt_menu_stream_mobile">"Open Stream (Mobile)"</string>
+    <string name="cnt_menu_stream_low">"Open Stream (Low)"</string>
+    <string name="cnt_menu_stream_meidum">"Open Stream (Medium)"</string>
+    <string name="cnt_menu_stream_high">"Open Stream (High)"</string>
+    <string name="cnt_menu_stream_source">"Open Stream (Source)"</string>
+    <string name="cnt_menu_streamonly">"Open Stream only"</string>
+    <string name="cnt_menu_chatonly">"Open Chat only"</string>
+
+    <string name="cnt_event_subscribe">Subscribe</string>
+    <string name="cnt_event_unsubscribe">Unsubscribe</string>
+
+    <!-- Channel -->
+    <string name="channel_name">Channel-Name</string>
+    <string name="channel_name_empty_header">Not logged in</string>
+    <string name="channel_name_empty">Not logged in</string>
+    <string name="oauth_empty">Error: No OAuth key found.\n\n<b>[Settings → Authenticate]</b></string>
+    <string name="channel_stream">Stream</string>
+    <string name="channel_thumbnail">Thumbnail</string>
+    <string name="channel_watch_stream">Watch Stream</string>
+    <string name="channel_chat">Open Chat</string>
+    <string name="channel_archives">Archives</string>
+    <string name="channel_status">Status</string>
+    <string name="channel_logo">Logo</string>
+    <string name="channel_online">Online</string>
+    <string name="channel_offline">Offline</string>
+    <string name="channel_unknown">Unknown</string>
+    <string name="channel_archives_empty">No archived videos</string>
+    <string name="channel_detail_empty">Select a channel for details</string>
+
+    <!-- Stream -->
+    <string name="stream_viewers">Viewers</string>
+    <string name="stream_went_offline">The stream went offline.</string>
+    <string name="stream_connection_lost">Unable to connect to stream servers.</string>
+    <string name="stream_viewer_list_title">Viewer List</string>
+    <string name="stream_channel_description_title">Channel Description</string>
+    <string name="notification_stream_backgrounded_title">%1$s\'s stream is running</string>
+    <string name="notification_stream_backgrounded">You\'re still connected to %1$s\'s chat</string>
+    <string name="notification_chat_backgrounded_title">%1$s\'s chat is running</string>
+    <string name="notification_chat_backgrounded">You\'re still connected to %1$s\'s chat</string>
+
+    <!-- Search -->
+    <string name="search_no_result">No streams found</string>
+
+    <!-- Playlist -->
+    <string name="playlist_part"><u>PART</u></string>
+    <string name="playlist_slash">/</string>
+
+    <!-- Settings -->
+    <string name="preference_title">Settings</string>
+    <string name="preference_internal_player">Use the internal Player</string>
+
+    <string name="preference_notifications_unavailable">No Google Play services detected</string>
+    <string name="preference_notifications">Notifications</string>
+    <string name="preference_notifications_enable">Enable Notifications</string>
+    <string name="preference_notifications_marathon">Marathon</string>
+    <string name="preference_notifications_watchspeedruns">WatchSpeedruns</string>
+
+    <string name="preference_notifications_marathon_context">Getting informed about future marathons</string>
+    <string name="preference_notifications_watchspeedruns_context">Getting push notifications from @WatchSpeedruns</string>
+
+    <string name="preference_licenses">Open Source Licenses</string>
+    <string name="preference_login">Login</string>
+    <string name="preference_authenticate">Refresh Token</string>
+    <string name="preference_logout">Logout</string>
+
+    <string name="preference_debug_enable">Enable Debugging</string>
+    <string name="preference_debug_address">IP address</string>
+    <string name="preference_debug_address_context">Set IP address which hosts the FFZ dev build</string>
+
+    <!-- Game -->
+    <string name="game_title">Game Overview</string>
+    <string name="live_games_title">Followed Games</string>
+    <string name="game_box">Box</string>
+    <string name="title_activity_login">LoginActivity</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- FFZ Feature Friday -->
+    <string name="ffz_friday_headline">Feature Friday!</string>
+
+    <string name="btnFollow">Follow</string>
+    <string name="btnUnfollow">Unfollow</string>
+
+    <string name="description">Media Controls</string>
+
+    <!-- Event -->
+    <string name="event_runner">Runner: %1$s</string>
+    <string name="event_category">Category: %1$s</string>
+    <string name="event_estimate">Estimate: %1$s</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="title_activity_event">EventActivity</string>
+
+    <string name="title_donation">Donation</string>
+    <string name="donation_text">StrimBagZ</string>
+
+    <!-- ExoPlayer -->
+    <string name="error_drm_not_supported">Protected content not supported on API levels below 18</string>
+    <string name="error_drm_unsupported_scheme">This device does not support the required DRM scheme</string>
+    <string name="error_drm_unknown">An unknown DRM error occurred</string>
+    <string name="error_no_decoder">This device does not provide a decoder for <xliff:g id="mime_type">%1$s</xliff:g></string>
+    <string name="error_no_secure_decoder">This device does not provide a secure decoder for <xliff:g id="mime_type">%1$s</xliff:g></string>
+    <string name="error_querying_decoders">Unable to query device decoders</string>
+    <string name="error_instantiating_decoder">Unable to instantiate decoder <xliff:g id="decoder_name">%1$s</xliff:g></string>
+    <string name="storage_permission_denied">Permission to access storage was denied</string>
+
+    <!-- Help -->
+    <string name="title_activity_help">Help</string>
+    <string name="action_about">About</string>
+
+
+</resources>

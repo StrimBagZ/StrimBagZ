@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#5f83a7</color>
+    <color name="colorPrimaryDark">#2c3e50</color>
+    <color name="colorAccent">#476481</color>
+    <color name="PrimaryDarkColor">#607D8B</color>
+
+    <color name="accent">#476481</color>
+    <color name="twitch_purple">#6441A5</color>
+    <color name="twitch_grey_dark">#262626</color>
+    <color name="twitch_grey_light">#F1F1F1</color>
+    <color name="status_unknown">#B2B2B2</color>
+    <color name="status_online">#669900</color>
+    <color name="status_offline">#CC0000</color>
+    <color name="navigation">#6200ea</color>
+</resources>

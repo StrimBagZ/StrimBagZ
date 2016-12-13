@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:id="@+id/qualityGroup">
+        <item
+            android:id="@+id/player_source"
+            android:title="Source" />
+        <item
+            android:id="@+id/player_high"
+            android:title="High" />
+        <item
+            android:id="@+id/player_medium"
+            android:title="Medium" />
+        <item
+            android:id="@+id/player_low"
+            android:title="Low" />
+        <item
+            android:id="@+id/player_mobile"
+            android:title="Mobile" />
+    </group>
+    <group>
+        <item
+            android:id="@+id/player_subscribe"
+            android:title="Subscribe"/>
+        <item
+            android:id="@+id/chatRooms"
+            android:title="Change Chat Room"/>
+        <item
+            android:id="@+id/player_share"
+            android:title="Share" />
+    </group>
+</menu>

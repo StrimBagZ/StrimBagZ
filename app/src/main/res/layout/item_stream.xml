@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:padding="8dp">
+
+    <ImageView
+        android:id="@+id/thumbnail"
+        android:layout_width="80dp"
+        android:layout_height="72dp"
+        android:scaleType="center"
+        android:layout_centerVertical="true"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:id="@+id/streamTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/thumbnail"
+        android:layout_alignTop="@id/thumbnail"
+        android:layout_marginLeft="8dp"
+        android:includeFontPadding="false"
+        android:lines="2"
+        android:textSize="16sp"
+        android:layout_toStartOf="@+id/imgGame"
+        android:layout_alignEnd="@+id/viewers" />
+
+    <ImageView
+        android:id="@+id/imgChannel"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_gravity="bottom"
+        android:layout_marginLeft="4dp"
+        android:layout_toRightOf="@id/thumbnail"
+        android:layout_alignBottom="@id/thumbnail"
+        android:src="@drawable/ic_channel" />
+
+    <TextView
+        android:id="@+id/channel"
+        android:layout_width="160dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginLeft="2dp"
+        android:layout_toRightOf="@id/imgChannel"
+        android:layout_alignBottom="@id/imgChannel"
+        android:minWidth="72dp"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:scrollHorizontally="true"
+        android:lines="1"
+        android:singleLine="true"
+        android:gravity="bottom|left"
+        android:textSize="14sp" />
+
+    <ImageView
+        android:id="@+id/imgGame"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_gravity="bottom"
+        android:src="@drawable/ic_game"
+        android:layout_below="@+id/imgChannel"
+        android:layout_alignStart="@+id/imgChannel" />
+
+    <TextView
+        android:id="@+id/game"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginLeft="2dp"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:scrollHorizontally="true"
+        android:lines="1"
+        android:singleLine="true"
+        android:gravity="start"
+        android:textSize="14sp"
+        android:layout_alignBottom="@+id/imgGame"
+        android:layout_alignStart="@+id/channel" />
+
+    <ImageView
+        android:id="@+id/imgViewers"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_gravity="bottom"
+        android:layout_marginLeft="2dp"
+        android:src="@drawable/ic_live"
+        android:layout_alignBottom="@+id/viewers"
+        android:layout_alignEnd="@+id/game"
+        android:layout_marginEnd="105dp" />
+
+    <TextView
+        android:id="@+id/viewers"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:textAlignment="textStart"
+        android:layout_marginLeft="24dp"
+        android:gravity="start"
+        android:textSize="14sp"
+        android:layout_alignTop="@+id/channel"
+        android:layout_alignStart="@+id/imgViewers"
+        android:layout_alignEnd="@+id/game" />
+
+
+</RelativeLayout>

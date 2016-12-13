@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name_new">StrimBagZ Rewrite</string>
+    <string name="btn_host">Host</string>
+    <string name="srl_title">SpeedRunsLive</string>
+
+    <string name="following_empty_live">No Channels live\nNobody is streaming right now</string>
+    <string name="network_error">Unable to resolve host\nCheck if you\'re connected to any network</string>
+    <string name="races_empty">No ongoing Races</string>
+    <string name="refresh">Refresh</string>
+    <string name="retry_call">Retry</string>
+
+    <!-- Settings -->
+    <string name="quality_default_value">medium</string>
+    <string name="quality_mobile_default_value">mobile</string>
+
+    <string name="settings_category_account">Account</string>
+    <string name="settings_category_notifications">Notifications</string>
+    <string name="settings_quality"> Default Quality</string>
+    <string name="settings_quailty_mobile">Default Quality (Mobile Data)</string>
+    <string name="settings_dark_theme">Dark Theme</string>
+    <string name="notification_watch">Watch</string>
+</resources>

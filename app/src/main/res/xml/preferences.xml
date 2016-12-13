@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <android.support.v7.preference.SwitchPreferenceCompat
+        android:title="@string/settings_dark_theme"
+        android:key="setting_dark_theme"
+        android:defaultValue="false" />
+    <android.support.v7.preference.PreferenceCategory
+        android:title="@string/settings_category_account"
+        android:key="setting_key_account">
+        <android.support.v7.preference.Preference
+            android:title="@string/preference_login"
+            android:key="setting_login"/>
+    </android.support.v7.preference.PreferenceCategory>
+    <android.support.v7.preference.PreferenceCategory
+        android:title="Stream"
+        android:key="setting_key_stream">
+        <android.support.v7.preference.ListPreference
+            android:title="@string/settings_quality"
+            android:key="setting_quality"
+            android:dialogTitle="@string/settings_quality"
+            android:entries="@array/quality_entries"
+            android:entryValues="@array/quality_entries_value"
+            android:defaultValue="@string/quality_default_value"/>
+        <android.support.v7.preference.ListPreference
+            android:title="@string/settings_quailty_mobile"
+            android:key="setting_quality_mobile"
+            android:dialogTitle="@string/settings_quailty_mobile"
+            android:entries="@array/quality_entries"
+            android:entryValues="@array/quality_entries_value"
+            android:defaultValue="@string/quality_mobile_default_value" />
+    </android.support.v7.preference.PreferenceCategory>
+    <android.support.v7.preference.PreferenceCategory
+        android:title="@string/settings_category_notifications"
+        android:key="setting_key_notifications">
+            <android.support.v7.preference.CheckBoxPreference
+                android:title="@string/preference_notifications_enable"
+                android:summary="Not implemented in this build"
+                android:enabled="false"/>
+            <android.support.v7.preference.CheckBoxPreference
+                android:title="@string/preference_notifications_marathon"
+                android:summary="@string/preference_notifications_marathon_context"
+                android:enabled="false"/>
+    </android.support.v7.preference.PreferenceCategory>
+</android.support.v7.preference.PreferenceScreen>

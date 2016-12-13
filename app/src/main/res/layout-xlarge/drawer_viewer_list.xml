@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright 2013-2014 Paul Stöhr
+  ~
+  ~ This file is part of TD.
+  ~
+  ~ TD is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawer_viewer"
+    android:layout_height="match_parent"
+    android:layout_width="320dp"
+    android:layout_gravity="start"
+    android:background="@color/twitch_grey_dark">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/abc_action_bar_default_height_material"
+        android:background="@color/PrimaryDarkColor"
+        android:id="@+id/relativeLayout">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stream_viewer_list_title"
+            style="@style/TextAppearance.AppCompat.Widget.ActionBar.Title.Inverse"
+            android:layout_centerVertical="true"
+            android:layout_centerHorizontal="true" />
+
+        <ProgressBar
+            android:id="@+id/viewerListLoading"
+            android:indeterminate="true"
+            android:indeterminateDrawable="@xml/progressbar_white"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="10dp"
+            android:layout_centerVertical="true"
+            android:layout_alignParentStart="true" />
+
+        <ImageButton
+            android:id="@+id/viewerListReload"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="fitXY"
+            android:layout_marginStart="10dp"
+            app:srcCompat="@drawable/ic_refresh"
+            android:visibility="gone"
+            android:background="@android:color/transparent"
+            android:layout_centerVertical="true"
+            android:layout_alignParentStart="true" />
+
+        <TextView
+            android:id="@+id/viewerCounter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            style="@style/Base.TextAppearance.AppCompat.Medium"
+            android:textColor="@android:color/white"
+            android:layout_centerVertical="true"
+            android:paddingEnd="5dp"
+            android:layout_toStartOf="@+id/viewerList" />
+
+        <ImageView
+            android:id="@+id/viewerList"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:srcCompat="@drawable/ic_viewer_list"
+            android:layout_centerVertical="true"
+            android:layout_alignParentEnd="true"
+            android:paddingEnd="10dp" />
+
+    </RelativeLayout>
+
+    <WebView
+        android:id="@+id/webViewViewerList"
+        android:layout_width="fill_parent"
+        android:layout_height="match_parent"
+        android:isScrollContainer="true"
+        android:background="@color/twitch_grey_light"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_below="@+id/relativeLayout" />
+</RelativeLayout>

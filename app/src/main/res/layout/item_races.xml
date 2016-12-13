@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:layout_marginBottom="8dp">
+
+    <ImageView
+        android:id="@+id/gameImage"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:background="@drawable/player_gradient_bottom"
+        android:layout_height="200dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp" />
+
+    <TextView
+        android:id="@+id/raceGame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="The Legend of Zelda: A Link to the Past Hacks"
+        android:textSize="20sp"
+        android:textColor="@android:color/white"
+        android:layout_marginStart="4dp"
+        android:layout_above="@+id/raceGoal"
+        android:layout_alignStart="@+id/gameImage"
+        android:layout_alignEnd="@+id/gameImage" />
+
+    <TextView
+        android:id="@+id/raceGoal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="randomizer v7 test seed B"
+        android:textSize="16sp"
+        android:textColor="@android:color/white"
+        android:layout_marginStart="0dp"
+        android:layout_marginBottom="25dp"
+        android:layout_alignBottom="@+id/gameImage"
+        android:layout_alignStart="@+id/raceGame"
+        android:layout_alignEnd="@+id/gameImage" />
+
+    <TextView
+        android:id="@+id/raceEntrants"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:text="playing The Legend of Zelda: Majora's... for 466 viewers"
+        android:textSize="14sp"
+        android:textColor="@android:color/white"
+        android:layout_marginStart="0dp"
+        android:layout_marginBottom="8dp"
+        android:layout_alignBottom="@+id/gameImage"
+        android:layout_alignStart="@+id/raceGoal"
+        android:layout_alignEnd="@+id/gameImage" />
+
+</RelativeLayout>
