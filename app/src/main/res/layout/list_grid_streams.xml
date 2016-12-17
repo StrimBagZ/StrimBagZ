@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v4.widget.SwipeRefreshLayout
+    android:id="@+id/swipeContainer"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <net.lubot.strimbagzrewrite.util.AutofitRecyclerView
+        android:id="@+id/listView"
+        android:clipToPadding="false"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:columnWidth="@dimen/column_width_streams"
+        android:scrollbars="vertical"
+        android:padding="@dimen/item_margin"/>
+
+</android.support.v4.widget.SwipeRefreshLayout>
