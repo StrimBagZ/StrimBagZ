@@ -28,14 +28,17 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.TextView;
 
 
 import net.lubot.strimbagzrewrite.Constants;
 import net.lubot.strimbagzrewrite.StrimBagZApplication;
 import net.lubot.strimbagzrewrite.data.model.SpeedRunsLive.Streams;
+import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
 import net.lubot.strimbagzrewrite.data.model.Twitch.LiveStreams;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Stream;
 import net.lubot.strimbagzrewrite.data.SpeedRunsLive;
@@ -43,8 +46,11 @@ import net.lubot.strimbagzrewrite.data.TwitchKraken;
 import net.lubot.strimbagzrewrite.R;
 import net.lubot.strimbagzrewrite.ui.activity.LoginActivity;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
+import net.lubot.strimbagzrewrite.ui.activity.PlayerActivity;
 import net.lubot.strimbagzrewrite.ui.adapter.EmptyRecyclerViewAdapter;
 import net.lubot.strimbagzrewrite.ui.adapter.StreamsAdapter;
+import net.lubot.strimbagzrewrite.util.MarginDecoration;
+import net.lubot.strimbagzrewrite.util.Utils;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -58,7 +64,6 @@ public class LiveStreamsFragment extends Fragment {
 
     private SwipeRefreshLayout swipeContainer;
     private RecyclerView recyclerView;
-    private TextView emptyText;
     private StreamsAdapter adapter;
     private EmptyRecyclerViewAdapter emptyView;
     private RecyclerView.LayoutManager layoutManager;
@@ -68,6 +73,11 @@ public class LiveStreamsFragment extends Fragment {
     private int offset;
     private String token;
     private boolean showSRLStreams;
+
+    private boolean isTablet;
+    private MarginDecoration offsetDecoration;
+
+    private boolean isActive;
 
     private final String TAG = "LiveStreamsFragment";
 
@@ -83,6 +93,11 @@ public class LiveStreamsFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        isTablet = context.getResources().getBoolean(R.bool.isTablet);
+        if (isTablet) {
+            Log.d(TAG, "inflate grid");
+            return inflater.inflate(R.layout.list_grid_streams, container, false);
+        }
         return inflater.inflate(R.layout.list, container, false);
     }
 
@@ -104,10 +119,17 @@ public class LiveStreamsFragment extends Fragment {
 
         swipeContainer = (SwipeRefreshLayout) view.findViewById(R.id.swipeContainer);
         recyclerView = (RecyclerView) view.findViewById(R.id.listView);
-        emptyText = (TextView) view.findViewById(R.id.emptyViewText);
         layoutManager = new LinearLayoutManager(context);
+        Log.d("isTablet", "tablet: " + isTablet);
+
+        if (isTablet) {
+            offsetDecoration = new MarginDecoration(context);
+            recyclerView.setHasFixedSize(true);
+            recyclerView.addItemDecoration(offsetDecoration);
+        } else {
+            recyclerView.setLayoutManager(layoutManager);
+        }
         adapter = new StreamsAdapter((MainActivity) getActivity(), LiveStreamsFragment.this);
-        recyclerView.setLayoutManager(layoutManager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         recyclerView.setAdapter(adapter);
     }
@@ -116,6 +138,7 @@ public class LiveStreamsFragment extends Fragment {
     public void onResume() {
         super.onResume();
         Log.d("LiveStream onResume", "resumed");
+        isActive = true;
         if (game != null && !game.isEmpty()) {
             forceRefreshAnimation();
             getSpecificStreams(game, null, 25);
@@ -168,6 +191,38 @@ public class LiveStreamsFragment extends Fragment {
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        isActive = false;
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        Channel channel = adapter.getSelectedChannel();
+        switch(item.getItemId()){
+            case R.id.ctn_openStream_Mobile:
+                Utils.startPlayerActivity(context, channel, "mobile");
+                break;
+            case R.id.ctn_openStream_Low:
+                Utils.startPlayerActivity(context, channel, "low");
+                break;
+            case R.id.ctn_openStream_Medium:
+                Utils.startPlayerActivity(context, channel, "medium");
+                break;
+            case R.id.ctn_openStream_High:
+                Utils.startPlayerActivity(context, channel, "high");
+                break;
+            case R.id.ctn_openStream_Source:
+                Utils.startPlayerActivity(context, channel, "source");
+                break;
+            case R.id.ctn_openChatOnly:
+                Utils.startChatOnlyActivity(context, channel);
+                break;
+        }
+        return true;
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
         Log.d("LiveStream omDestroy", "destroying");
@@ -177,9 +232,6 @@ public class LiveStreamsFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         Log.d("LiveStream oDetach", "detaching");
-        this.adapter.clear();
-        this.adapter = null;
-        recyclerView = null;
     }
 
     private void getData() {
@@ -187,13 +239,18 @@ public class LiveStreamsFragment extends Fragment {
                 .enqueue(new Callback<LiveStreams>() {
                     @Override
                     public void onResponse(Call<LiveStreams> call, Response<LiveStreams> response) {
+                        if (!isActive) {
+                            return;
+                        }
                         if (response.code() == 200) {
                             if (adapter != null) {
                                 adapter.clear();
                                 List<Stream> streams = response.body().streams();
                                 if (!streams.isEmpty()) {
                                     adapter.addAll(streams);
-                                    recyclerView.setLayoutManager(layoutManager);
+                                    if (!isTablet) {
+                                        recyclerView.setLayoutManager(layoutManager);
+                                    }
                                     recyclerView.setAdapter(adapter);
                                 } else {
                                     Log.d(TAG, "empty stream list");
@@ -220,6 +277,9 @@ public class LiveStreamsFragment extends Fragment {
                     @Override
                     public void onFailure(Call<LiveStreams> call, Throwable t) {
                         Log.d("onFailure", t.getMessage());
+                        if (!isActive) {
+                            return;
+                        }
                         if (t.getMessage().contains("Unable to resolve host")) {
                             Log.d(TAG, "Network issues");
                             View.OnClickListener listener = new View.OnClickListener() {
@@ -232,10 +292,12 @@ public class LiveStreamsFragment extends Fragment {
                             emptyView = new EmptyRecyclerViewAdapter(context,
                                     R.string.network_error,
                                     R.string.retry_call, listener);
-                            recyclerView.setLayoutManager(layoutManager);
-                            recyclerView.setAdapter(emptyView);
+                            if (recyclerView != null) {
+                                recyclerView.setLayoutManager(layoutManager);
+                                recyclerView.setAdapter(emptyView);
+                            }
                         }
-                        if (swipeContainer.isRefreshing()) {
+                        if (swipeContainer != null && swipeContainer.isRefreshing()) {
                             swipeContainer.setRefreshing(false);
                         }
                     }
@@ -249,16 +311,12 @@ public class LiveStreamsFragment extends Fragment {
                     public void onResponse(Call<LiveStreams> call, Response<LiveStreams> response) {
                         if (response.code() == 200) {
                             if (adapter != null) {
-                                recyclerView.setVisibility(View.VISIBLE);
-                                emptyText.setVisibility(View.GONE);
                                 adapter.clear();
                                 adapter.addAll(response.body().streams());
                             }
                         }
                         if (response.code() == 401) {
                             recyclerView.setVisibility(View.GONE);
-                            emptyText.setVisibility(View.VISIBLE);
-                            emptyText.setText("Unauthorized, please authenticate.");
                         }
                         if (swipeContainer.isRefreshing()) {
                             swipeContainer.setRefreshing(false);

@@ -40,10 +40,12 @@ import java.util.List;
 public class GamesAdapter extends RecyclerView.Adapter<GamesAdapter.ViewHolder> {
 
     private Fragment fragment;
+    private boolean isTablet;
     private List<FollowedGames> data;
 
     public GamesAdapter(Fragment context) {
         this.fragment = context;
+        this.isTablet = fragment.getContext().getResources().getBoolean(R.bool.isTablet);
         this.data = new ArrayList<>();
     }
 
@@ -68,11 +70,16 @@ public class GamesAdapter extends RecyclerView.Adapter<GamesAdapter.ViewHolder> 
         FollowedGames tmp = data.get(position);
         holder.gameTitle.setText(tmp.game().name());
         holder.game = tmp.game();
-        //holder.viewerCount.setText(tmp.viewers + "");
 
-        Glide.with(fragment)
-                .load(tmp.game().box().medium())
-                .into(holder.box);
+        if (!isTablet) {
+            Glide.with(fragment)
+                    .load(tmp.game().box().medium())
+                    .into(holder.box);
+        } else {
+            Glide.with(fragment)
+                    .load(tmp.game().box().large())
+                    .into(holder.box);
+        }
     }
 
     @Override
@@ -80,10 +87,9 @@ public class GamesAdapter extends RecyclerView.Adapter<GamesAdapter.ViewHolder> 
         return data.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
+    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         private ImageView box;
         private TextView gameTitle;
-        //private TextView viewerCount;
 
         private Game game;
 
@@ -91,9 +97,7 @@ public class GamesAdapter extends RecyclerView.Adapter<GamesAdapter.ViewHolder> 
             super(item);
             box = (ImageView) item.findViewById(R.id.imgBox);
             gameTitle = (TextView) item.findViewById(R.id.gameTitle);
-            //viewerCount = (TextView) item.findViewById(R.id.viewerCount);
             item.setOnClickListener(this);
-            //item.setOnLongClickListener(this);
         }
 
         @Override
@@ -103,9 +107,5 @@ public class GamesAdapter extends RecyclerView.Adapter<GamesAdapter.ViewHolder> 
             ((MainActivity) fragment.getActivity()).showStreams(bundle);
         }
 
-        @Override
-        public boolean onLongClick(View v) {
-            return false;
-        }
     }
 }

@@ -51,6 +51,7 @@ import com.google.android.exoplayer.util.MimeTypes
 import com.google.android.exoplayer.util.Util
 import com.google.android.exoplayer.util.VerboseLogUtil
 import com.neovisionaries.ws.client.*
+import com.orhanobut.logger.Logger
 import com.squareup.moshi.Moshi
 import kotlinx.android.synthetic.main.drawer_channel_description_new.*
 import kotlinx.android.synthetic.main.drawer_viewer_list.*
@@ -147,7 +148,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
 
 
         if (savedInstanceState != null) {
-            Log.d("savedInstanceState", "restore from previous state")
+            Logger.i("savedInstanceState not null, restoring")
             channel = savedInstanceState.getParcelable("channel")
             chatOnly = savedInstanceState.getBoolean("chatOnly")
             VoD = savedInstanceState.getBoolean("VoD")
@@ -155,7 +156,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             getStreamURI(channel.name(), true)
         } else {
             contentUri = intent.data
-            Log.d("onCreate", "Current contentUri: " + contentUri)
+            Logger.i("Current contentUri: %s", contentUri)
             channel = intent.getParcelableExtra("channel")
             chatOnly = intent.getBooleanExtra("chatOnly", false)
             VoD = intent.getBooleanExtra("VoD", false)
@@ -225,17 +226,17 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
         initViewerListUI()
         initOverlayUI()
         initChatUI()
-        setupTopController()
-
-        setFollowButtons(null)
-        connectWebSocket()
+        if (!chatOnly) {
+            setupTopController()
+            setFollowButtons(null)
+            connectWebSocket()
+        }
         setChannelDescription()
 
         //handelSRL(srlJson)
     }
 
     fun setupTopController() {
-        if (!chatOnly) {
             btn_quality.setOnClickListener({
                 //view -> showVideoPopup(view)
                 if (hasVideoTracks()) {
@@ -338,8 +339,8 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
                 drawerLayout.openDrawer(Gravity.RIGHT)
                 controller?.hide()
             }
-        }
     }
+
 
     //TODO Finish Tab completion
     /*
@@ -388,17 +389,25 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
     }
 
     fun changeChatRoomSheet(array: Array<String>, ids: Array<String>) {
-        val bottomSheet = BottomSheet.Builder((chat?.context as MutableContextWrapper).baseContext as Activity)
-                .title("Choose Chat room to switch:")
+        val bottomSheet: BottomSheet.Builder?
+        if (darkMode) {
+            bottomSheet = BottomSheet
+                    .Builder((chat?.context as MutableContextWrapper).baseContext as Activity,
+                            R.style.BottomSheet_CustomDarkTheme)
+        } else {
+            bottomSheet = BottomSheet
+                    .Builder((chat?.context as MutableContextWrapper).baseContext as Activity)
+        }
+        bottomSheet.title("Choose Chat Room to switch:")
         var id = 0
         array.forEach {
-            Log.d("Chatrooms", it + ", id: " + id)
+            Logger.i("Chat Room %s, id: %s", it, id)
             bottomSheet.sheet(id, it)
             id++
         }
         bottomSheet.listener({ p0, p1 ->
             val room = ids[p1]
-            Log.d("changeRoom", room)
+            Logger.i("Change Chat Room to %s", room)
             changeChatRoom(room, false)
         }).show()
     }
@@ -435,12 +444,13 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             videoSurface.holder.addCallback(this)
             videoIsLoading(true)
         } else {
-            Log.d("chatOnly", "Removing Video surface")
+            Logger.i("Chat Only mode enabled, removing Video surface")
             if (isTablet) {
                 contentFrame?.removeView(aspectRatio)
             } else {
                 contentRelative?.removeView(aspectRatio)
             }
+            return
         }
 
         if (VoD) {
@@ -530,14 +540,13 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
 
                 if (!url.equals("https://www.twitch.tv/${login}/chat")) {
                     if (url.startsWith("http:") || url.startsWith("https:")) {
-                        Log.d("urlOverride", "url: " + url)
-                        Log.d("urlOverride", "is YouTube: " + StringUtils.contains(url, "youtube.com"))
+                        Logger.i("URL Override %s", url)
+                        Logger.i("URL Override is YouTube: %b", StringUtils.contains(url, "youtube.com"))
                         if (StringUtils.contains(url, "youtube.com") && player != null) {
                             player?.setMute(true)
                         }
                         showOverlay(url)
                         drawerLayout?.closeDrawers()
-                        Log.d("Changes", "changes")
                         return true
                     }
                 }
@@ -636,8 +645,8 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
         overlayWebView?.setWebViewClient(object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                 view.loadUrl(url)
-                Log.d("urlOverride", "url: " + url)
-                Log.d("urlOverride", "is YouTube: " + StringUtils.containsIgnoreCase(url, "https://m.youtube.com/"))
+                Logger.i("URL Override %s", url)
+                Logger.i("URL Override is YouTube: %b", StringUtils.contains(url, "youtube.com"))
                 if (StringUtils.containsIgnoreCase(url, "https://m.youtube.com/") && player != null) {
                     player?.setMute(true)
                 }
@@ -675,7 +684,6 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
         if (overlayToolbar != null) {
             overlayClose.setOnClickListener { hideOverlay() }
         }
-        Log.d("OverlayWebView", "adding webview to container")
         overlayWebViewContainer?.addView(overlayWebView)
     }
 
@@ -735,7 +743,6 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             chat?.setWebViewClient(webViewClient)
             // Change chat room if we're in a different chat
             if (StrimBagZApplication.previousChat != StrimBagZApplication.currentChat) {
-                Log.d("ChatSwitch", "new chat detected")
                 StrimBagZApplication.chat?.post { chat?.loadUrl("javascript:(function (){strimBagInterface.changeChannel(strimBagInterface.oldChannel(),strimBagInterface.channel())}());") }
             }
         }
@@ -801,7 +808,6 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
     }
 
     override fun onBackPressed() {
-        Log.d("onBackPressed", "pressed")
         if (overlayStream.visibility == VISIBLE) {
             hideOverlay()
             return
@@ -817,7 +823,6 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
         }
 
         if (!chatOnly) {
-            Log.d("onResume", "Stream first time loaded: " + streamFirstLoaded)
             if (!streamFirstLoaded) {
                 // Renew stream url
                 if (!blockPlayer) {
@@ -938,12 +943,19 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
     public override fun onDestroy() {
         super.onDestroy()
         StrimBagZApplication.previousChat = channel.name()
+        if (StrimBagZApplication.chat.context is MutableContextWrapper) {
+            (StrimBagZApplication.chat.context as MutableContextWrapper)
+                    .baseContext = applicationContext
+        }
         if (!chatOnly) {
             audioCapabilitiesReceiver?.unregister()
             releasePlayer()
         }
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(42069)
+        if (ws != null) {
+            ws?.disconnect()
+        }
         chat?.removeAllViews()
         chat?.removeAllViewsInLayout()
         destroyWebView()
@@ -971,7 +983,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
     private val rendererBuilder: Player.RendererBuilder
         get() {
             //val userAgent = Util.getUserAgent(this, "StrimBagZ")
-            val userAgent = "TwitchExoPlayer/4.13.2" + " (Linux;Android " + Build.VERSION.RELEASE +") " + "ExoPlayerLib/1.3.3"
+            val userAgent = "TwitchExoPlayer/4.16.0" + " (Linux;Android " + Build.VERSION.RELEASE +") " + "ExoPlayerLib/1.3.3"
             return HlsRendererBuilder(this, userAgent, contentUri.toString())
         }
 
@@ -1886,6 +1898,10 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
                             text = text.substring(text.indexOf("{"))
                             val obj = JSONObject(text)
                             val channels = obj.getJSONArray(channel.name())
+                            if (channels.length() == 0) {
+                                Log.d("FFZ", "follow button empty, abort")
+                                return
+                            }
                             //val channels = obj.getJSONArray("luigitus")
                             runOnUiThread {
                                 Snackbar.make(chatContainer, "Follow Buttons updated", Snackbar.LENGTH_LONG).show()

@@ -24,12 +24,15 @@ import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.MenuInflater;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.signature.StringSignature;
 
 import net.lubot.strimbagzrewrite.util.Utils;
@@ -55,9 +58,12 @@ public class HostingAdapter extends RecyclerView.Adapter<HostingAdapter.ViewHold
 
     private Fragment fragment;
     private List<FollowedHosting.FollowedHosts> data;
+    private boolean isTablet;
+    private int position;
 
     public HostingAdapter(Fragment context) {
         this.fragment = context;
+        this.isTablet = fragment.getContext().getResources().getBoolean(R.bool.isTablet);
         this.data = new ArrayList<>();
     }
 
@@ -114,11 +120,25 @@ public class HostingAdapter extends RecyclerView.Adapter<HostingAdapter.ViewHold
         String tmp = "playing " + game + " for " +
                 NumberFormat.getInstance().format(host.target().viewers()) + " viewers";
         holder.nowPlaying.setText(tmp);
-        Glide.with(fragment)
-                .load(host.target().preview())
-                .signature(new StringSignature(System.currentTimeMillis() + ""))
-                .centerCrop()
-                .into(holder.preview);
+        if (!isTablet) {
+            Glide.with(fragment)
+                    .load(host.target().preview().medium())
+                    .diskCacheStrategy(DiskCacheStrategy.RESULT)
+                    .centerCrop()
+                    .into(holder.preview);
+        } else {
+            Glide.with(fragment)
+                    .load(host.target().preview().medium())
+                    .diskCacheStrategy(DiskCacheStrategy.RESULT)
+                    .centerCrop()
+                    .into(holder.preview);
+        }
+    }
+
+    @Override
+    public void onViewRecycled(HostingAdapter.ViewHolder holder) {
+        super.onViewRecycled(holder);
+        Glide.clear(holder.preview);
     }
 
     private String checkName(String displayName, String name) {
@@ -128,13 +148,17 @@ public class HostingAdapter extends RecyclerView.Adapter<HostingAdapter.ViewHold
         return displayName;
     }
 
+    public int getPosition() {
+        return position;
+    }
+
     @Override
     public int getItemCount() {
         return data.size();
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder
-            implements View.OnClickListener, View.OnCreateContextMenuListener {
+            implements View.OnClickListener, View.OnLongClickListener, View.OnCreateContextMenuListener {
         private TextView hosting;
         private TextView title;
         private TextView nowPlaying;
@@ -159,6 +183,7 @@ public class HostingAdapter extends RecyclerView.Adapter<HostingAdapter.ViewHold
         public void onCreateContextMenu(ContextMenu menu, View view,
                                         ContextMenu.ContextMenuInfo menuInfo) {
             FollowedHosting.FollowedHosts host = data.get(getAdapterPosition());
+            MenuInflater menuInflater = new MenuInflater(fragment.getContext());
             if(host.hostedBy() != null && !host.hostedBy().isEmpty()) {
                 menu.setHeaderTitle("Hosted by");
                 List<FollowedHosting.FollowedHosts> hostedBy = host.hostedBy();
@@ -166,7 +191,20 @@ public class HostingAdapter extends RecyclerView.Adapter<HostingAdapter.ViewHold
                     menu.add(h.display_name() != null ?
                             checkName(h.display_name(), h.name()) : h.name());
                 }
+                SubMenu options = menu.addSubMenu(fragment.getContext()
+                        .getResources().getString(R.string.ctx_stream_options));
+                menuInflater.inflate(R.menu.ctx_stream_actions, options);
+            } else {
+                menu.setHeaderTitle(fragment.getContext()
+                        .getResources().getString(R.string.ctx_stream_options));
+                menuInflater.inflate(R.menu.ctx_stream_actions, menu);
             }
+        }
+
+        @Override
+        public boolean onLongClick(View view) {
+            position = getAdapterPosition();
+            return true;
         }
     }
 }

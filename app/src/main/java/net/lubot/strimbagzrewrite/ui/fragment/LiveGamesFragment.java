@@ -32,13 +32,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import net.lubot.strimbagzrewrite.Constants;
 import net.lubot.strimbagzrewrite.data.model.Twitch.FollowedGame;
 import net.lubot.strimbagzrewrite.data.TwitchAPI;
 import net.lubot.strimbagzrewrite.R;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 import net.lubot.strimbagzrewrite.ui.adapter.EmptyRecyclerViewAdapter;
 import net.lubot.strimbagzrewrite.ui.adapter.GamesAdapter;
+import net.lubot.strimbagzrewrite.util.GridAutofitLayoutManager;
+import net.lubot.strimbagzrewrite.util.GridSpacingItemDecoration;
 import net.lubot.strimbagzrewrite.util.ItemOffsetDecoration;
+import net.lubot.strimbagzrewrite.util.MarginDecoration;
+import net.lubot.strimbagzrewrite.util.Utils;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -53,9 +58,8 @@ public class LiveGamesFragment extends Fragment {
     private RecyclerView recyclerView;
     private TextView emptyText;
     private EmptyRecyclerViewAdapter emptyView;
-    private GridLayoutManager gridLayout;
     private RecyclerView.LayoutManager layoutManager;
-    private ItemOffsetDecoration offsetDecoration;
+    private MarginDecoration offsetDecoration;
     private GamesAdapter adapter;
 
     private String login;
@@ -84,11 +88,9 @@ public class LiveGamesFragment extends Fragment {
         emptyText = (TextView) view.findViewById(R.id.emptyViewText);
 
         adapter = new GamesAdapter(LiveGamesFragment.this);
-        gridLayout = new GridLayoutManager(context, 2);
         layoutManager = new LinearLayoutManager(context);
-        offsetDecoration = new ItemOffsetDecoration(2);
-        recyclerView.setLayoutManager(gridLayout);
-        recyclerView.setItemAnimator(new DefaultItemAnimator());
+        offsetDecoration = new MarginDecoration(context);
+        recyclerView.setHasFixedSize(true);
         recyclerView.addItemDecoration(offsetDecoration);
         recyclerView.setAdapter(adapter);
 
@@ -114,13 +116,11 @@ public class LiveGamesFragment extends Fragment {
                     public void onResponse(Call<FollowedGame> call, Response<FollowedGame> response) {
                         if (response.code() == 200) {
                             if (adapter != null) {
-                                recyclerView.setVisibility(View.VISIBLE);
-                                emptyText.setVisibility(View.GONE);
                                 adapter.clear();
                                 adapter.addAll(response.body().follows());
-                                recyclerView.setLayoutManager(gridLayout);
-                                recyclerView.setItemAnimator(new DefaultItemAnimator());
-                                recyclerView.addItemDecoration(offsetDecoration);
+                                //recyclerView.setLayoutManager(gridLayout);
+                                //recyclerView.setItemAnimator(new DefaultItemAnimator());
+                                //recyclerView.addItemDecoration(offsetDecoration);
                                 recyclerView.setAdapter(adapter);
                             }
                         }
@@ -144,7 +144,7 @@ public class LiveGamesFragment extends Fragment {
                             emptyView = new EmptyRecyclerViewAdapter(context,
                                     R.string.network_error,
                                     R.string.retry_call, listener);
-                            recyclerView.removeItemDecoration(offsetDecoration);
+                            //recyclerView.removeItemDecoration(offsetDecoration);
                             recyclerView.setLayoutManager(layoutManager);
                             recyclerView.setAdapter(emptyView);
                         }

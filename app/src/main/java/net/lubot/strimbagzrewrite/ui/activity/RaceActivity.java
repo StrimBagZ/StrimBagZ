@@ -9,14 +9,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.MenuItem;
 import android.widget.ImageView;
+
+import com.bumptech.glide.Glide;
 
 import net.lubot.strimbagzrewrite.Constants;
 import net.lubot.strimbagzrewrite.data.model.SpeedRunsLive.Entrant;
 import net.lubot.strimbagzrewrite.data.model.SpeedRunsLive.Races;
+import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
 import net.lubot.strimbagzrewrite.data.model.Twitch.LiveStreams;
 import net.lubot.strimbagzrewrite.data.TwitchKraken;
 import net.lubot.strimbagzrewrite.R;
+import net.lubot.strimbagzrewrite.ui.adapter.EmptyRecyclerViewAdapter;
 import net.lubot.strimbagzrewrite.ui.adapter.StreamsAdapter;
 import net.lubot.strimbagzrewrite.util.Utils;
 
@@ -28,10 +33,11 @@ import retrofit2.Response;
 
 public class RaceActivity extends AppCompatActivity {
 
-    RecyclerView recyclerView;
-    RecyclerView.LayoutManager layoutManager;
-    StreamsAdapter adapter;
-    Races.Race race;
+    private RecyclerView recyclerView;
+    private RecyclerView.LayoutManager layoutManager;
+    private StreamsAdapter adapter;
+    private EmptyRecyclerViewAdapter emptyView;
+    private Races.Race race;
     private final String TAG = "RaceActivity";
 
     @Override
@@ -77,14 +83,38 @@ public class RaceActivity extends AppCompatActivity {
         layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
-        /*
         Glide.with(this)
                 .load("http://cdn.speedrunslive.com/images/games/" + race.game.abbrev + ".jpg")
                 .placeholder(R.drawable.ic_srl)
                 .centerCrop()
                 .into(imageView);
-        */
         getEntrantsStreams(race.entrants);
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        Channel channel = adapter.getSelectedChannel();
+        switch(item.getItemId()){
+            case R.id.ctn_openStream_Mobile:
+                Utils.startPlayerActivity(this, channel, "mobile");
+                break;
+            case R.id.ctn_openStream_Low:
+                Utils.startPlayerActivity(this, channel, "low");
+                break;
+            case R.id.ctn_openStream_Medium:
+                Utils.startPlayerActivity(this, channel, "medium");
+                break;
+            case R.id.ctn_openStream_High:
+                Utils.startPlayerActivity(this, channel, "high");
+                break;
+            case R.id.ctn_openStream_Source:
+                Utils.startPlayerActivity(this, channel, "source");
+                break;
+            case R.id.ctn_openChatOnly:
+                Utils.startChatOnlyActivity(this, channel);
+                break;
+        }
+        return true;
     }
 
     private void getEntrantsStreams(ArrayList<Entrant> entrants) {
@@ -104,9 +134,12 @@ public class RaceActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(Call<LiveStreams> call, Response<LiveStreams> response) {
                         if (response.code() == 200) {
-                            if (adapter != null) {
+                            if (adapter != null && !response.body().streams().isEmpty()) {
                                 adapter.clear();
                                 adapter.addAll(response.body().streams());
+                            }
+                            if (response.body().streams().isEmpty()) {
+
                             }
                         }
                     }

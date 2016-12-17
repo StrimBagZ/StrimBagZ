@@ -18,13 +18,13 @@
  */
 package net.lubot.strimbagzrewrite.ui.adapter;
 
-import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
+import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -35,51 +35,38 @@ import com.bumptech.glide.signature.StringSignature;
 import com.google.firebase.analytics.FirebaseAnalytics;
 
 import net.lubot.strimbagzrewrite.util.Utils;
-import net.lubot.strimbagzrewrite.data.model.Twitch.AccessToken;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Stream;
-import net.lubot.strimbagzrewrite.data.TwitchAPI;
 import net.lubot.strimbagzrewrite.R;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
-import net.lubot.strimbagzrewrite.ui.activity.PlayerActivity;
-
-import org.apache.commons.lang3.StringUtils;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHolder> {
 
-    private MainActivity activity;
-    private Context context;
+    private Activity activity;
+    private Fragment fragment;
     private List<Stream> data;
+    private int position;
 
-    public StreamsAdapter(Fragment context) {
-        this.context = context.getActivity();
-        this.data = new ArrayList<>();
-    }
-
-    public StreamsAdapter(MainActivity activity, Fragment context) {
+    public StreamsAdapter(Activity activity) {
         this.activity = activity;
-        this.context = context.getActivity();
         this.data = new ArrayList<>();
     }
 
-    public StreamsAdapter(Context context) {
-        this.context = context;
+    public StreamsAdapter(Activity activity, Fragment fragment) {
+        this.activity = activity;
+        this.fragment = fragment;
         this.data = new ArrayList<>();
     }
+
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         return new ViewHolder(LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_stream_new, parent, false));
+                .inflate(R.layout.item_stream, parent, false));
     }
 
     public void clear() {
@@ -95,7 +82,6 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         Stream stream = data.get(position);
-        holder.setPosition(position);
         holder.title.setText(stream.channel().status());
         if (stream.channel().displayName() != null) {
             holder.channel
@@ -106,12 +92,19 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
         String tmp = Utils.buildString("Playing ", stream.channel().game(), " for ",
                 NumberFormat.getInstance().format(stream.viewers()), " viewers");
         holder.nowPlaying.setText(tmp);
-        holder.setChannel(stream.channel());
-        Glide.with(context)
-                .load(stream.preview().medium())
-                .centerCrop()
-                .signature(new StringSignature(stream.channel().name() + stream.channel().updated_at()))
-                .into(holder.preview);
+        if (fragment != null) {
+            Glide.with(fragment)
+                    .load(stream.preview().medium())
+                    .centerCrop()
+                    .signature(new StringSignature(stream.channel().name() + stream.channel().updated_at()))
+                    .into(holder.preview);
+        } else {
+            Glide.with(activity)
+                    .load(stream.preview().medium())
+                    .centerCrop()
+                    .signature(new StringSignature(stream.channel().name() + stream.channel().updated_at()))
+                    .into(holder.preview);
+        }
     }
 
     private String checkName(String displayName, String name) {
@@ -126,62 +119,22 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
         return data.size();
     }
 
+    public Channel getSelectedChannel() {
+        return data.get(position).channel();
+    }
+
     @Override
     public void onViewRecycled(ViewHolder holder) {
         super.onViewRecycled(holder);
         Glide.clear(holder.preview);
     }
 
-    /* Old layout
-    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
-        private TextView title;
-        private TextView channel;
-        private TextView game;
-        private TextView viewers;
-        private ImageView preview;
-        private int position;
-
-        private Channel channelData;
-
-        public ViewHolder(View item) {
-            super(item);
-            title = (TextView) item.findViewById(R.id.streamTitle);
-            channel = (TextView) item.findViewById(R.id.channel);
-            game = (TextView) item.findViewById(R.id.game);
-            viewers = (TextView) item.findViewById(R.id.viewers);
-            preview = (ImageView) item.findViewById(R.id.thumbnail);
-            item.setOnClickListener(this);
-            item.setOnLongClickListener(this);
-        }
-
-        public void setPosition(int pos) {
-            this.position = pos;
-        }
-        public void setChannel(Channel channel) {
-            this.channelData = channel;
-        }
-
-        @Override
-        public void onClick(View v) {
-            //Toast.makeText(fragment.getContext(), position + ", " + channel.getText(), Toast.LENGTH_SHORT).show();
-            startPlayerActivity(channelData);
-              }
-
-        @Override
-        public boolean onLongClick(View v) {
-            return false;
-        }
-    }
-    */
-
-    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
+    public class ViewHolder extends RecyclerView.ViewHolder
+            implements View.OnClickListener, View.OnCreateContextMenuListener {
         private TextView channel;
         private TextView title;
         private TextView nowPlaying;
         private ImageView preview;
-        private int position;
-
-        private Channel channelData;
 
         public ViewHolder(View item) {
             super(item);
@@ -190,30 +143,37 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
             nowPlaying = (TextView) item.findViewById(R.id.nowPlaying);
             preview = (ImageView) item.findViewById(R.id.previewImage);
             item.setOnClickListener(this);
-            item.setOnLongClickListener(this);
-        }
-
-        public void setPosition(int pos) {
-            this.position = pos;
-        }
-        public void setChannel(Channel channel) {
-            this.channelData = channel;
+            item.setOnCreateContextMenuListener(this);
         }
 
         @Override
         public void onClick(View v) {
-            //Toast.makeText(fragment.getContext(), position + ", " + channel.getText(), Toast.LENGTH_SHORT).show();
-            startPlayerActivity(channelData);
+            startPlayerActivity(data.get(getAdapterPosition()).channel());
         }
 
         private void startPlayerActivity(final Channel channel) {
-            Utils.startPlayerActivity(context, channel);
+            Bundle bundle = new Bundle();
+            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, channel.name());
+            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, channel.id() + "");
+            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "stream");
+
+            if (activity instanceof MainActivity) {
+                ((MainActivity) activity)
+                        .trackActivity(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
+            }
+
+            Utils.startPlayerActivity(activity, channel);
         }
 
         @Override
-        public boolean onLongClick(View v) {
-            return false;
+        public void onCreateContextMenu(ContextMenu menu, View view,
+                                        ContextMenu.ContextMenuInfo contextMenuInfo) {
+            position = getAdapterPosition();
+            menu.setHeaderTitle(activity.getResources().getString(R.string.ctx_stream_options));
+            MenuInflater menuInflater = new MenuInflater(activity);
+            menuInflater.inflate(R.menu.ctx_stream_actions, menu);
         }
+
     }
 
 }

@@ -19,18 +19,14 @@
 package net.lubot.strimbagzrewrite.ui.activity
 
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import net.lubot.strimbagzrewrite.BuildConfig
+import com.orhanobut.logger.Logger
 import net.lubot.strimbagzrewrite.Constants
 import net.lubot.strimbagzrewrite.R
 import net.lubot.strimbagzrewrite.util.Utils
@@ -41,9 +37,7 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val Intent = intent
-        val url = Intent.getStringExtra("url")
-
+        val url = intent.getStringExtra("url")
         setContentView(R.layout.activity_login)
         WebView.setWebContentsDebuggingEnabled(true)
 
@@ -66,16 +60,12 @@ class LoginActivity : AppCompatActivity() {
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                 if (url.contains("http://localhost/")) {
                     val token = url.substring(url.indexOf("=") + 1, url.indexOf("&"))
-                    Log.d("Login", token)
+                    Logger.i("Token %s", token)
                     val settings = getSharedPreferences(Constants.SETTINGS, MODE_PRIVATE)
                     val editor = settings.edit()
                     editor.putString("oauth_token", token)
                     editor.apply()
-
                     Utils.getTwitchUser(this@LoginActivity)
-
-                    //setResult(Constants.LOGGED_IN, Intent())
-                    //finish()
                     return true
                 }
                 return false
@@ -97,21 +87,6 @@ class LoginActivity : AppCompatActivity() {
             return true
         }
         return super.onOptionsItemSelected(item)
-    }
-
-    fun getCookie(siteName: String, CookieName: String): String? {
-        var CookieValue: String? = null
-
-        val cookieManager = CookieManager.getInstance()
-        val cookies = cookieManager.getCookie(siteName)
-        val temp = cookies.split(";".toRegex()).dropLastWhile({ it.isEmpty() }).toTypedArray()
-        for (ar1 in temp) {
-            if (ar1.contains(CookieName)) {
-                val temp1 = ar1.split("=".toRegex()).dropLastWhile({ it.isEmpty() }).toTypedArray()
-                CookieValue = temp1[1]
-            }
-        }
-        return CookieValue
     }
 
 }

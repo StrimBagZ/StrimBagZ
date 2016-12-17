@@ -21,6 +21,7 @@ package net.lubot.strimbagzrewrite.data.model.Twitch;
 import android.support.annotation.Nullable;
 
 import com.google.auto.value.AutoValue;
+import com.squareup.moshi.Json;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
@@ -55,6 +56,18 @@ public abstract class FollowedHosting {
     }
 
     @AutoValue
+    public static abstract class StreamPreview {
+        public abstract String small();
+        public abstract String medium();
+        public abstract String large();
+        public abstract String template();
+
+        public static JsonAdapter<StreamPreview> jsonAdapter(Moshi moshi) {
+            return new AutoValue_FollowedHosting_StreamPreview.MoshiJsonAdapter(moshi);
+        }
+    }
+
+    @AutoValue
     public static abstract class FollowedHostsTarget {
         public abstract Channel channel();
         @Nullable
@@ -62,7 +75,8 @@ public abstract class FollowedHosting {
         @Nullable
         public abstract String meta_game();
         public abstract long viewers();
-        public abstract String preview();
+        @Json(name = "preview_urls")
+        public abstract StreamPreview preview();
 
         public static JsonAdapter<FollowedHostsTarget> jsonAdapter(Moshi moshi) {
             return new AutoValue_FollowedHosting_FollowedHostsTarget.MoshiJsonAdapter(moshi);

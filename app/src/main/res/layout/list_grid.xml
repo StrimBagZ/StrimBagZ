@@ -3,22 +3,15 @@
     android:id="@+id/swipeContainer"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="8dp">
+    android:layout_height="match_parent">
 
-    <android.support.v7.widget.RecyclerView
+    <net.lubot.strimbagzrewrite.util.AutofitRecyclerView
         android:id="@+id/listView"
         android:clipToPadding="false"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scrollbars="vertical"/>
-
-    <TextView
-        android:id="@+id/emptyViewText"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:visibility="gone"
-        android:text="Test"/>
+        android:columnWidth="@dimen/column_width"
+        android:scrollbars="vertical"
+        android:padding="@dimen/item_margin"/>
 
 </android.support.v4.widget.SwipeRefreshLayout>

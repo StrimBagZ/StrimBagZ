@@ -31,12 +31,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import net.lubot.strimbagzrewrite.BuildConfig;
 import net.lubot.strimbagzrewrite.data.model.Twitch.FollowedHosting;
 import net.lubot.strimbagzrewrite.data.TwitchAPI;
 import net.lubot.strimbagzrewrite.R;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 import net.lubot.strimbagzrewrite.ui.adapter.EmptyRecyclerViewAdapter;
 import net.lubot.strimbagzrewrite.ui.adapter.HostingAdapter;
+import net.lubot.strimbagzrewrite.util.MarginDecoration;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +59,9 @@ public class HostedStreamsFragment extends Fragment {
     private HostingAdapter adapter;
     private RecyclerView.LayoutManager layoutManager;
 
+    private boolean isTablet;
+    private MarginDecoration offsetDecoration;
+
     private String login;
 
     @Override
@@ -67,6 +72,11 @@ public class HostedStreamsFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        isTablet = context.getResources().getBoolean(R.bool.isTablet);
+        if (isTablet) {
+            Log.d(TAG, "inflate grid");
+            return inflater.inflate(R.layout.list_grid_streams, container, false);
+        }
         return inflater.inflate(R.layout.list, container, false);
     }
 
@@ -84,8 +94,16 @@ public class HostedStreamsFragment extends Fragment {
 
         adapter = new HostingAdapter(HostedStreamsFragment.this);
         layoutManager = new LinearLayoutManager(getContext());
-        recyclerView.setLayoutManager(layoutManager);
-        recyclerView.setItemAnimator(new DefaultItemAnimator());
+
+        Log.d("isTablet", "tablet: " + isTablet);
+
+        if (isTablet) {
+            offsetDecoration = new MarginDecoration(context);
+            recyclerView.setHasFixedSize(true);
+            recyclerView.addItemDecoration(offsetDecoration);
+        } else {
+            recyclerView.setLayoutManager(layoutManager);
+        }
         recyclerView.setAdapter(adapter);
         registerForContextMenu(recyclerView);
 
@@ -112,7 +130,7 @@ public class HostedStreamsFragment extends Fragment {
                         if (response.code() == 200) {
                             if (adapter != null) {
                                 prepareData(response.body().hosts());
-                                recyclerView.setLayoutManager(layoutManager);
+                                //recyclerView.setLayoutManager(layoutManager);
                                 recyclerView.setAdapter(adapter);
                             }
                         }
@@ -150,7 +168,7 @@ public class HostedStreamsFragment extends Fragment {
         ArrayList<FollowedHosting.FollowedHosts> result = new ArrayList<>();
 
         ArrayList<String> foundHosts = new ArrayList<>();
-        ArrayList<Integer> foundHostsCounter = new ArrayList<>();
+        //ArrayList<Integer> foundHostsCounter = new ArrayList<>();
         for (int i = 0, hostsSize = hosts.size(); i < hostsSize; i++) {
             FollowedHosting.FollowedHosts host = hosts.get(i);
             String name = host.target().channel().name();
@@ -186,11 +204,13 @@ public class HostedStreamsFragment extends Fragment {
                             host.display_name(), host.target(), null);
                 }
                 result.add(newHost);
-                foundHostsCounter.add(hostCount);
+                //foundHostsCounter.add(hostCount);
             }
         }
-        for (FollowedHosting.FollowedHosts test: result) {
-            Log.d("prepare data", test.toString());
+        if (BuildConfig.DEBUG) {
+            for (FollowedHosting.FollowedHosts test : result) {
+                Log.d("prepare data", test.toString());
+            }
         }
         adapter.clear();
         adapter.addAll(result);

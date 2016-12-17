@@ -18,7 +18,9 @@
         android:supportsRtl="false"
         android:hardwareAccelerated="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".ui.activity.MainActivity" android:launchMode="singleTop">
+        <activity android:name=".ui.activity.MainActivity"
+            android:theme="@style/AppTheme.StatusBar"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

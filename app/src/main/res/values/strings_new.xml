@@ -3,6 +3,8 @@
     <string name="btn_host">Host</string>
     <string name="srl_title">SpeedRunsLive</string>
 
+    <string name="ctx_stream_options">Options</string>
+
     <string name="following_empty_live">No Channels live\nNobody is streaming right now</string>
     <string name="network_error">Unable to resolve host\nCheck if you\'re connected to any network</string>
     <string name="races_empty">No ongoing Races</string>

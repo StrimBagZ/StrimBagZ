@@ -163,6 +163,9 @@ public class RacesFragment extends Fragment {
                                 new Races.RaceGame(row.getJSONObject("game").getString("name"),
                                         row.getJSONObject("game").getString("abbrev"));
                         String goal = row.getString("goal");
+                        if (goal.isEmpty()) {
+                            goal = "No goal set";
+                        }
                         ArrayList<Entrant> entrants = new ArrayList<>();
                         JSONObject entrantsJSON = row.getJSONObject("entrants");
                         Iterator<String> keys = entrantsJSON.keys();

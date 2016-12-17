@@ -22,7 +22,10 @@ import android.app.NotificationManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
@@ -125,7 +128,6 @@ public class MainActivity extends AppCompatActivity
         updatePreferences();
         Utils.onActivityCreateSetTheme(this);
         setContentView(R.layout.activity_main);
-        setupRemoteConfig();
 
         //String refreshedToken = FirebaseInstanceId.getInstance().getToken();
         //Log.d("Firebase Token", refreshedToken + "");
@@ -204,6 +206,26 @@ public class MainActivity extends AppCompatActivity
         if (getIntent() != null) {
             onNewIntent(getIntent());
         }
+
+    }
+
+    private void showWebViewDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("WebView not detected")
+                .setMessage("It looks like WebView is not installed on your device\n" +
+                        "Typically this is the case when using a Custom ROM\n" +
+                        "Please install it from the Play Store in order to properly use this app")
+                .setCancelable(false)
+                .setPositiveButton("Open Play Store", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(Uri.parse("market://details?id=com.google.android.webview"));
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+                    }
+                })
+                .show();
     }
 
     private void showRewriteDialog() {
@@ -297,6 +319,26 @@ public class MainActivity extends AppCompatActivity
         Log.d("onResume", "called");
         fetchConfig();
         updatePreferences();
+
+        boolean isInstalled;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            // Since Android N the WebView can be get from Chrome too.
+            isInstalled = Utils.isPackageInstalled("com.android.chrome", getPackageManager());
+            Log.d("WebView", "Chrome Installed: " + isInstalled);
+            if (!isInstalled) {
+                // If Chrome is not installed, the normal WebView is used (if it exists).
+                isInstalled = Utils.isPackageInstalled("com.google.android.webview", getPackageManager());
+                Log.d("WebView", "WebView (N) Installed: " + isInstalled);
+            }
+        } else {
+            // Older versions of Android just use the WebView package.
+            isInstalled = Utils.isPackageInstalled("com.google.android.webview", getPackageManager());
+            Log.d("WebView", "Legacy Installed: " + isInstalled);
+        }
+
+        if (!isInstalled) {
+            showWebViewDialog();
+        }
         /*
         mCastContext.getSessionManager().addSessionManagerListener(
                 mSessionManagerListener, CastSession.class);
@@ -386,128 +428,6 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    private void testHoraro() {
-        HoraroAPI.getService().getTicker("3c11hs37lh81pg7a91").enqueue(new Callback<Ticker>() {
-            @Override
-            public void onResponse(Call<Ticker> call, Response<Ticker> response) {
-                if (response.code() == 200) {
-                    if (response.body().data().ticker().next() != null) {
-                        Log.d("HoraroAPI", response.body().toString());
-                        Calendar currentTime = Calendar.getInstance();
-                        Calendar time = Calendar.getInstance();
-                        time.setTimeInMillis(response.body().data().ticker().next().scheduled_t() * 1000);
-                        Log.d("HoraroAPI", "Time: " + time);
-                        if (DateFormat.is24HourFormat(MainActivity.this)) {
-                            Log.d("HoraroAPI", "Next run starts at: " + DateFormat.format("HH:mm", time));
-                        } else {
-                            if (Utils.checkSameDay(currentTime, time)) {
-                                Log.d("HoraroAPI", "Next run starts at: " + DateFormat.format("hh:mm a", time));
-                            } else {
-                                Log.d("HoraroAPI", "Next run starts at: " + DateFormat.format("d MMM hh:mm a", time));
-                            }
-                        }
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<Ticker> call, Throwable t) {
-
-            }
-        });
-    }
-
-    private void testSRL() {
-        SpeedRunsLive.getService().getRaces().enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                try {
-                    String json = response.body().string();
-                    JSONObject object = new JSONObject(json);
-                    Races races = new Races(new ArrayList<Races.Race>());
-                    JSONArray rac = object.getJSONArray("races");
-
-                    for (int i = 0; i < rac.length(); i++) {
-                        JSONObject row = rac.getJSONObject(i);
-                        String state = row.getString("statetext");
-                        // We don't care about Races that are done.
-                        if (!state.equals("Complete")) {
-                            String id = row.getString("id");
-                            Races.RaceGame game =
-                                    new Races.RaceGame(row.getJSONObject("game").getString("name"), row.getJSONObject("game").getString("abbrev"));
-                            String goal = row.getString("goal");
-                            ArrayList<Entrant> entrants = new ArrayList<Entrant>();
-                            JSONObject entrantsJSON = row.getJSONObject("entrants");
-                            Iterator<String> keys = entrantsJSON.keys();
-                            while (keys.hasNext()) {
-                                JSONObject entrant = entrantsJSON.getJSONObject(keys.next());
-                                String displayName = entrant.getString("displayname");
-                                long place = entrant.getLong("place");
-                                long time = entrant.getLong("time");
-                                String message = null;
-                                if (entrant.getString("message") != null) {
-                                    message = entrant.getString("message");
-                                }
-                                String statetext = entrant.getString("statetext");
-                                String twitch = entrant.getString("twitch");
-                                String trueskill = entrant.getString("trueskill");
-                                entrants.add(new Entrant(displayName, place, time, message, statetext, twitch, trueskill));
-                            }
-                            races.races.add(new Races.Race(id, game, goal, entrants, state));
-                        }
-                    }
-
-                    for (Races.Race race: races.races) {
-                        Log.d("Race", race.toString());
-                    }
-
-                } catch (IOException | JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.d("onFailure", t.getMessage());
-            }
-        });
-    }
-
-    private void testJSON() {
-        List<SRLRaceEntrant> list = new ArrayList<>();
-        String json = "[[\"tob3000\",\"sva16162\",\"makko9143\",\"spamminn\",\"fig02\",\"alaris_villain\",\"psymarth\",\"moosecrap\",\"flanthis\",\"phoenixfeather1\",\"cma2819\",\"mikekatz45\",\"sniping117\",\"exodus122\",\"mrjabujabu\"],{\"entrants\":{\"alaris_villain\":{\"channel\":\"alaris_villain\",\"comment\":\"row3\",\"display_name\":\"alaris_villain\",\"place\":10,\"state\":\"done\",\"time\":5388},\"cma\":{\"channel\":\"cma2819\",\"comment\":\"row3\",\"display_name\":\"Cma\",\"place\":8,\"state\":\"done\",\"time\":5064},\"exodus\":{\"channel\":\"exodus122\",\"comment\":\"col 2\",\"display_name\":\"Exodus\",\"place\":2,\"state\":\"done\",\"time\":4611},\"fig02\":{\"channel\":\"fig02\",\"display_name\":\"fig02\",\"place\":12,\"state\":\"done\",\"time\":6805},\"flanthis\":{\"channel\":\"flanthis\",\"comment\":\"bltr omg this bingo was trash\",\"display_name\":\"flanthis\",\"place\":11,\"state\":\"done\",\"time\":5685},\"makko\":{\"channel\":\"makko9143\",\"comment\":\"col1 blame blank b\",\"display_name\":\"makko\",\"place\":7,\"state\":\"done\",\"time\":5037},\"marthur\":{\"comment\":\"row2 i dont know how to get to spirit so i just quit :P\",\"display_name\":\"marthur\",\"state\":\"forfeit\"},\"mikekatz45\":{\"channel\":\"mikekatz45\",\"comment\":\"col2\",\"display_name\":\"MikeKatz45\",\"place\":1,\"state\":\"done\",\"time\":4598},\"moosecrap\":{\"channel\":\"moosecrap\",\"comment\":\"c4 routing mistakes\",\"display_name\":\"moosecrap\",\"place\":13,\"state\":\"done\",\"time\":8626},\"mrjabujabu\":{\"channel\":\"mrjabujabu\",\"display_name\":\"Mrjabujabu\",\"place\":14,\"state\":\"done\",\"time\":8741},\"niamek\":{\"comment\":\"MRJABUJABU I will redeem myself eventually. Prepare yourself!\",\"display_name\":\"niamek\",\"state\":\"forfeit\"},\"phoenixfeather\":{\"channel\":\"phoenixfeather1\",\"comment\":\"row 4\",\"display_name\":\"PhoenixFeather\",\"place\":4,\"state\":\"done\",\"time\":4834},\"psymarth\":{\"channel\":\"psymarth\",\"comment\":\"row 4; mostly child\",\"display_name\":\"PsyMarth\",\"place\":5,\"state\":\"done\",\"time\":4959},\"sniping117\":{\"channel\":\"sniping117\",\"comment\":\"tl-br, so many hearts but mine is broken\",\"display_name\":\"SNIPING117\",\"place\":9,\"state\":\"done\",\"time\":5357},\"spamminn\":{\"channel\":\"spamminn\",\"display_name\":\"spamminn\",\"place\":15,\"state\":\"done\",\"time\":9263},\"sva\":{\"channel\":\"sva16162\",\"comment\":\"col 1 no hover boots for beat deku and water, that was scary\",\"display_name\":\"sva\",\"place\":3,\"state\":\"done\",\"time\":4743},\"tob3000\":{\"channel\":\"tob3000\",\"comment\":\"row3, bad\",\"display_name\":\"tob3000\",\"place\":6,\"state\":\"done\",\"time\":5034}},\"filename\":\"true\",\"game\":\"The Legend of Zelda: Ocarina of Time\",\"goal\":\"http://www.speedrunslive.com/tools/oot-bingo?mode=normal\\u0026amp;seed=455884\",\"id\":\"nid68\",\"state\":\"done\",\"time\":1.475977149e+09}]";
-        JSONObject entrants = null;
-        Iterator<String> keys = null;
-        try {
-            JSONArray array = new JSONArray(json);
-            entrants = array.getJSONObject(1).getJSONObject("entrants");
-            keys = entrants.keys();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        Moshi moshi = new Moshi.Builder().build();
-        JsonAdapter<SRLRaceEntrant> jsonAdapter = SRLRaceEntrant.jsonAdapter(moshi);
-        while (keys.hasNext()) {
-            String key = keys.next();
-            JSONObject entrant = null;
-            try {
-                entrant = (JSONObject) entrants.get(key);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            SRLRaceEntrant test = null;
-            try {
-                test = jsonAdapter.fromJson(entrant.toString());
-                list.add(test);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        for (SRLRaceEntrant e: list) {
-            Log.d("Json test", e.toString());
-        }
-    }
-
     public String getToken() {
         Log.d("MainActivity", "Before Token " + token);
         boolean isPreference = preferences != null;
@@ -537,7 +457,7 @@ public class MainActivity extends AppCompatActivity
             login = preferences.getString(Constants.LOGIN, Constants.NO_USER);
         }
         Log.d("MainActivity", "After Login " + login);
-        return user;
+        return login;
     }
 
     public String getDisplayName() {
@@ -591,26 +511,30 @@ public class MainActivity extends AppCompatActivity
                         Channel channel = response.body();
 
                         if (channel.logo() != null) {
-                            Glide.with(MainActivity.this)
-                                    .load(channel.logo())
-                                    .asBitmap()
-                                    .centerCrop()
-                                    .into(new BitmapImageViewTarget(profile_image) {
-                                        @Override
-                                        protected void setResource(Bitmap resource) {
-                                            RoundedBitmapDrawable circularBitmapDrawable =
-                                                    RoundedBitmapDrawableFactory
-                                                            .create(MainActivity.this.getResources(), resource);
-                                            circularBitmapDrawable.setCircular(true);
-                                            profile_image.setImageDrawable(circularBitmapDrawable);
-                                        }
-                                    });
+                            try {
+                                Glide.with(MainActivity.this)
+                                        .load(channel.logo())
+                                        .asBitmap()
+                                        .centerCrop()
+                                        .into(new BitmapImageViewTarget(profile_image) {
+                                            @Override
+                                            protected void setResource(Bitmap resource) {
+                                                RoundedBitmapDrawable circularBitmapDrawable =
+                                                        RoundedBitmapDrawableFactory
+                                                                .create(MainActivity.this.getResources(), resource);
+                                                circularBitmapDrawable.setCircular(true);
+                                                profile_image.setImageDrawable(circularBitmapDrawable);
+                                            }
+                                        });
+                            } catch (IllegalArgumentException ignored) {}
                         }
                         if (channel.profileBanner() != null) {
-                            Glide.with(MainActivity.this)
-                                    .load(channel.profileBanner())
-                                    .fitCenter()
-                                    .into((ImageView) navigationHeader.findViewById(R.id.headerBackground));
+                            try {
+                                Glide.with(MainActivity.this)
+                                        .load(channel.profileBanner())
+                                        .fitCenter()
+                                        .into((ImageView) navigationHeader.findViewById(R.id.headerBackground));
+                            } catch (IllegalArgumentException ignored) {}
                         }
                         TextView user = (TextView) navigationHeader.findViewById(R.id.username);
                         if (channel.displayName() != null) {
@@ -673,10 +597,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void showStreams(Bundle args) {
-        Fragment fragment = getSupportFragmentManager().findFragmentByTag("gameStreams");
-        if (fragment == null) {
-            fragment = new LiveStreamsFragment();
-        }
+        Fragment fragment = new LiveStreamsFragment();
         fragment.setArguments(args);
         replaceFragment(fragment, "gameStreams");
     }

@@ -3,10 +3,12 @@ package net.lubot.strimbagzrewrite.util;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.text.format.DateFormat;
+import android.util.DisplayMetrics;
 import android.util.Log;
 
 import net.lubot.strimbagzrewrite.Constants;
@@ -56,7 +58,8 @@ public class Utils {
         boolean darkTheme = activity
                 .getSharedPreferences(Constants.SETTINGS, Context.MODE_PRIVATE)
                 .getBoolean(Constants.SETTING_DARK_THEME, false);
-        if (activity instanceof MainActivity || activity instanceof RaceActivity) {
+        if ((activity instanceof MainActivity || activity instanceof RaceActivity)
+                && !activity.getResources().getBoolean(R.bool.isTablet)) {
             activity.setTheme(darkTheme ? R.style.AppThemeDark : R.style.AppTheme);
         } else {
             activity.setTheme(darkTheme ? R.style.AppThemeDark_StatusBar : R.style.AppTheme_StatusBar);
@@ -91,7 +94,12 @@ public class Utils {
         });
     }
 
-    public static void startPlayerActivity(final Context context, final Channel channel) {
+    public static void startPlayerActivity(Context context, Channel channel) {
+        startPlayerActivity(context, channel, null);
+    }
+
+    public static void startPlayerActivity(final Context context, final Channel channel,
+                                           final String quality) {
         TwitchAPI.getService().getChannelToken(channel.name()).enqueue(new Callback<AccessToken>() {
             @Override
             public void onResponse(Call<AccessToken> call, Response<AccessToken> response) {
@@ -111,8 +119,12 @@ public class Utils {
 
                     final Intent intent = new Intent(context, PlayerActivity.class)
                             .setData(uri)
-                            .putExtra("channel", channel)
-                            .putExtra("quality", getQuality(context));
+                            .putExtra("channel", channel);
+                    if (quality == null) {
+                        intent.putExtra("quality", getQuality(context));
+                    } else {
+                        intent.putExtra("quality", quality);
+                    }
                     context.startActivity(intent);
                 }
             }
@@ -122,6 +134,13 @@ public class Utils {
 
             }
         });
+    }
+
+    public static void startChatOnlyActivity(Context context, Channel channel) {
+        Intent intent = new Intent(context, PlayerActivity.class);
+        intent.putExtra("chatOnly", true);
+        intent.putExtra("channel", channel);
+        context.startActivity(intent);
     }
 
     private static String getQuality(Context context) {
@@ -151,6 +170,21 @@ public class Utils {
             return sb.toString();
         }
         return "";
+    }
+
+    public static int calculateNumberOfColumns(Context context) {
+        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+        float dpWidth = displayMetrics.widthPixels / displayMetrics.density;
+        return (int) (dpWidth / 180);
+    }
+
+    public static boolean isPackageInstalled(String packageName, PackageManager packageManager) {
+        try {
+            packageManager.getPackageInfo(packageName, PackageManager.GET_ACTIVITIES);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
     }
 
     /**
