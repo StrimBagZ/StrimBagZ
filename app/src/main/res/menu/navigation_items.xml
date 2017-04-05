@@ -10,6 +10,24 @@
             android:title="@string/following_title" />
 
         <item
+            android:id="@+id/followedChannels"
+            android:checked="false"
+            android:icon="@drawable/ic_heart"
+            android:title="@string/followed_channels" />
+
+        <item
+            android:id="@+id/topGames"
+            android:checked="false"
+            android:icon="@drawable/ic_top_game"
+            android:title="@string/games_title"/>
+
+        <item
+            android:id="@+id/communities"
+            android:checked="false"
+            android:icon="@drawable/ic_community"
+            android:title="@string/communities_title" />
+
+        <item
             android:id="@+id/srl"
             android:checked="false"
             android:icon="@drawable/ic_srl_menu"
@@ -32,6 +50,15 @@
             android:id="@+id/menu_none"
             android:title=""
             android:visible="false"/>
+    </group>
+
+    <group android:checkableBehavior="single" >
+        <item
+            android:id="@+id/divergence"
+            android:checked="false"
+            android:enabled="false"
+            android:icon="@drawable/ic_schedule"
+            android:title="1.048596"/>
     </group>
 
 </menu>

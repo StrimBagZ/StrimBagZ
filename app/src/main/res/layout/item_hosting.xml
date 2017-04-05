@@ -8,6 +8,7 @@
 
     <ImageView
         android:id="@+id/previewImage"
+        android:background="?attr/colorPrimary"
         android:layout_width="match_parent"
         android:layout_height="200dp"
         android:layout_marginTop="8dp"

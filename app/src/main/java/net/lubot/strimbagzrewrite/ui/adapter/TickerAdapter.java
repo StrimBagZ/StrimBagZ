@@ -20,6 +20,7 @@ package net.lubot.strimbagzrewrite.ui.adapter;
 
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,6 +62,24 @@ public class TickerAdapter extends RecyclerView.Adapter<TickerAdapter.ViewHolder
             columns = data.data().schedule().columns();
         }
         notifyDataSetChanged();
+    }
+
+    public String getName() {
+        if (data != null && data.data().schedule() != null
+                && data.data().schedule().name() != null) {
+            return data.data().schedule().name();
+        }
+        Log.d("TickerAdapter", "return null");
+        return "";
+    }
+
+    public String getStart() {
+        if (data != null && data.data().schedule() != null
+                && data.data().schedule().start() != null) {
+            return data.data().schedule().start();
+        }
+        Log.d("TickerAdapter", "return null");
+        return "";
     }
 
 
@@ -120,19 +139,21 @@ public class TickerAdapter extends RecyclerView.Adapter<TickerAdapter.ViewHolder
         for (int i = 0, columnsSize = columns.size(); i < columnsSize; i++) {
             String column = columns.get(i);
             String data = next.data().get(i);
-            if (data.startsWith("[")) {
-                data = data.substring(data.indexOf("[") + 1, data.lastIndexOf("]"));
-            }
-            tmp += column + ": " + data;
-            if (i < columnsSize - 1) {
-                tmp += "\n";
+            if (data != null) {
+                if (data.startsWith("[")) {
+                    data = data.substring(data.indexOf("[") + 1, data.lastIndexOf("]"));
+                }
+                tmp += column + ": " + data;
+                if (i < columnsSize - 1) {
+                    tmp += "\n";
+                }
             }
         }
         holder.tickerInfo.setText(tmp);
     }
 
     @Override
-    public int getItemCount() {
+    public int getItemCount()   {
         if (data != null) {
             Ticker.Tickerticker tickers = data.data().ticker();
             if (tickers.current() != null && tickers.next() != null) {

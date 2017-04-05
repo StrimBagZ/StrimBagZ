@@ -19,27 +19,26 @@
 package net.lubot.strimbagzrewrite.ui.activity;
 
 import android.app.NotificationManager;
+import android.app.SearchManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -52,56 +51,42 @@ import com.bumptech.glide.request.target.BitmapImageViewTarget;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.analytics.FirebaseAnalytics;
-import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
-import com.squareup.moshi.JsonAdapter;
-import com.squareup.moshi.Moshi;
 
 import net.lubot.strimbagzrewrite.BuildConfig;
 import net.lubot.strimbagzrewrite.Constants;
-import net.lubot.strimbagzrewrite.data.HoraroAPI;
-import net.lubot.strimbagzrewrite.data.model.FrankerFaceZ.SRLRaceEntrant;
-import net.lubot.strimbagzrewrite.data.model.Horaro.Ticker;
-import net.lubot.strimbagzrewrite.data.model.SpeedRunsLive.Entrant;
-import net.lubot.strimbagzrewrite.data.model.SpeedRunsLive.Races;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
 import net.lubot.strimbagzrewrite.data.model.Twitch.KrakenBase;
-import net.lubot.strimbagzrewrite.data.SpeedRunsLive;
 import net.lubot.strimbagzrewrite.data.TwitchKraken;
 import net.lubot.strimbagzrewrite.R;
+import net.lubot.strimbagzrewrite.ui.fragment.ChatFragment;
+import net.lubot.strimbagzrewrite.ui.fragment.CommunitiesFragment;
+import net.lubot.strimbagzrewrite.ui.fragment.FollowedChannelsFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.FollowingFragment;
+import net.lubot.strimbagzrewrite.ui.fragment.LiveGamesFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.LiveStreamsFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.MarathonFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.SRLFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.SettingsFragment;
 import net.lubot.strimbagzrewrite.util.Utils;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.polaric.colorful.CActivity;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity
+public class MainActivity extends CActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     private ActionBarDrawerToggle toggle;
     private DrawerLayout drawerLayout;
     private Toolbar mToolbar;
+    private MenuItem searchItem;
     private NavigationView navigationView;
     private View navigationHeader;
     private ImageView profile_image;
@@ -110,10 +95,9 @@ public class MainActivity extends AppCompatActivity
 
     private SharedPreferences preferences;
     private String login = Constants.NO_USER;
+    private String userID = Constants.NO_USER;
     private String user = Constants.NO_USER;
     private String token = Constants.NO_TOKEN;
-
-    private long reloadTimestamp = 0;
 
     private FirebaseAnalytics firebaseAnalytics;
     private FirebaseRemoteConfig firebaseRemoteConfig;
@@ -126,7 +110,6 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         updatePreferences();
-        Utils.onActivityCreateSetTheme(this);
         setContentView(R.layout.activity_main);
 
         //String refreshedToken = FirebaseInstanceId.getInstance().getToken();
@@ -136,6 +119,11 @@ public class MainActivity extends AppCompatActivity
         if (!preferences.getBoolean("update_notification", false)) {
             FirebaseMessaging.getInstance().subscribeToTopic("updates");
             preferences.edit().putBoolean("update_notification", true).apply();
+        }
+
+        if (!preferences.getBoolean("marathon_notification", false)) {
+            FirebaseMessaging.getInstance().subscribeToTopic("marathon");
+            preferences.edit().putBoolean("marathon_notification", true).apply();
         }
 
         if(!preferences.getBoolean("rewrite_dialog", false)) {
@@ -154,44 +142,38 @@ public class MainActivity extends AppCompatActivity
 
         getToken();
         getLogin();
+        getUserID();
         getDisplayName();
         initNavigation();
 
         if (login != null && !login.equals(Constants.NO_USER)) {
-            // We know the login, so we can directly get the channel information of the user
+            // We know the userID, so we can directly get the channel information of the user
             getChannel(login);
         } else if (token != null && !token.equals(Constants.NO_TOKEN)) {
-            // We have the OAuth token of the user, call the base and get the login name
+            // We have the OAuth token of the user, call the base and get the userID
             getBase();
         }
 
+        if (getIntent() != null && !getIntent().getBooleanExtra("DONE", false)) {
+            onNewIntent(getIntent());
+            getIntent().putExtra("DONE", true);
+        }
+
         boolean recreateSettings = preferences.getBoolean(Constants.RECREATE_SETTINGS, false);
+        Log.d("recreate Settings", "should recreate: " + recreateSettings);
         if (recreateSettings) {
-            Fragment fragmentPref = getSupportFragmentManager()
-                    .findFragmentByTag(Constants.FRAGMENT_SETTINGS);
+            Fragment fragmentPref = new SettingsFragment();
             if (fragmentPref == null) {
                 Log.d("fragmentPref", "create new Settings fragment");
                 fragmentPref = new SettingsFragment();
             }
-            //currentFragment = fragmentPref;
             replaceFragment(fragmentPref, Constants.FRAGMENT_SETTINGS, false);
             preferences.edit().putBoolean(Constants.RECREATE_SETTINGS, false).apply();
             return;
         }
 
         if (savedInstanceState != null) {
-            Log.d("savedInstanceState", "is not null");
-            Set<String> set = savedInstanceState.keySet();
-            for (String item : set) {
-                Log.d("savedInstance", item);
-            }
-            /*
-            currentFragment = getSupportFragmentManager().getFragment(savedInstanceState, "currentFragment");
-            currentFragmentTag = savedInstanceState.getString("currentFragmentTag");
-            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-            transaction.replace(R.id.fragmentContainer, currentFragment, currentFragmentTag);
-            transaction.commit();
-            */
+
         } else {
             //currentFragment = new FollowingFragment();
             //SRLFragment fragment = new SRLFragment();
@@ -201,10 +183,6 @@ public class MainActivity extends AppCompatActivity
             transaction.replace(R.id.fragmentContainer,
                     new FollowingFragment(), Constants.FRAGMENT_FOLLOWING);
             transaction.commit();
-        }
-
-        if (getIntent() != null) {
-            onNewIntent(getIntent());
         }
 
     }
@@ -255,6 +233,11 @@ public class MainActivity extends AppCompatActivity
         }
 
         Menu menu = navigationView.getMenu();
+        if (login.equals(Constants.NO_USER)) {
+            menu.findItem(R.id.followedChannels).setVisible(false);
+            menu.findItem(R.id.topGames).setVisible(false);
+            menu.findItem(R.id.srl).setVisible(false);
+        }
         navigationView.setNavigationItemSelectedListener(this);
     }
 
@@ -274,13 +257,39 @@ public class MainActivity extends AppCompatActivity
                 //getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
                 replaceFragment(fragmentFollowing, Constants.FRAGMENT_FOLLOWING);
                 break;
+            case R.id.followedChannels:
+                Fragment fragmentFollowedChannels = getSupportFragmentManager()
+                        .findFragmentByTag("followedChannels");
+                if (fragmentFollowedChannels == null) {
+                    fragmentFollowedChannels = new FollowedChannelsFragment();
+                }
+                replaceFragment(fragmentFollowedChannels, "followedChannels");
+                break;
+            case R.id.topGames:
+                Fragment fragmentTopGames = getSupportFragmentManager()
+                        .findFragmentByTag("topGames");
+                if (fragmentTopGames == null) {
+                    Bundle bundle = new Bundle();
+                    bundle.putBoolean("showDirectory", true);
+                    fragmentTopGames = new LiveGamesFragment();
+                    fragmentTopGames.setArguments(bundle);
+                }
+                replaceFragment(fragmentTopGames, "topGames");
+                break;
+            case R.id.communities:
+                Fragment fragmentCommunities = getSupportFragmentManager()
+                        .findFragmentByTag(Constants.FRAGMENT_COMMUNTIES);
+                if (fragmentCommunities == null) {
+                    fragmentCommunities = new CommunitiesFragment();
+                }
+                replaceFragment(fragmentCommunities, Constants.FRAGMENT_COMMUNTIES);
+                break;
             case R.id.srl:
                 Fragment fragmentSRL = getSupportFragmentManager()
                         .findFragmentByTag(Constants.FRAGMENT_SRL);
                 if (fragmentSRL == null) {
                     fragmentSRL = new SRLFragment();
                 }
-                //getSupportFragmentManager().popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
                 replaceFragment(fragmentSRL, Constants.FRAGMENT_SRL);
                 break;
             case R.id.marathon:
@@ -310,7 +319,40 @@ public class MainActivity extends AppCompatActivity
         super.onCreateOptionsMenu(menu);
         //getMenuInflater().inflate(R.menu.player_cast, menu);
         //CastButtonFactory.setUpMediaRouteButton(this, menu, R.id.media_route_menu_item);
-        Map<String, String> map = new HashMap<>();
+        getMenuInflater().inflate(R.menu.main, menu);
+
+        SearchManager searchManager = (SearchManager) getSystemService(SEARCH_SERVICE);
+        searchItem = menu.findItem(R.id.search);
+        SearchView searchView = (SearchView) searchItem.getActionView();
+
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+        searchView.setOnSearchClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.d("SearchView", "Open");
+            }
+        });
+        searchView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean queryFocused) {
+                if (!queryFocused) {
+                    MenuItemCompat.collapseActionView(searchItem);
+                }
+            }
+        });
+
+        MenuItem item = menu.findItem(R.id.testItem);
+        if (BuildConfig.DEBUG) {
+            //item.setVisible(true);
+            /*
+            item.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem menuItem) {
+                    return true;
+                }
+            });
+            */
+        }
         return true;
     }
 
@@ -359,19 +401,11 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onBackPressed() {
-        int count = getSupportFragmentManager().getBackStackEntryCount();
-        if (count == 0) {
-            super.onBackPressed();
-        } else {
+        if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
             getSupportFragmentManager().popBackStack();
+        } else {
+            super.onBackPressed();
         }
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        //getSupportFragmentManager().putFragment(outState, "currentFragment", currentFragment);
-        //outState.putString("currentFragmentTag", currentFragmentTag);
     }
 
     @Override
@@ -386,12 +420,43 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putString("WORKAROUND_FOR_BUG_19917_KEY", "WORKAROUND_FOR_BUG_19917_VALUE");
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            String query = intent.getStringExtra(SearchManager.QUERY);
+            Fragment fragment = getSupportFragmentManager().findFragmentByTag("search");
+            if (fragment == null) {
+                Bundle bundle = new Bundle();
+                bundle.putBoolean("search", true);
+                fragment = new LiveStreamsFragment();
+                fragment.setArguments(bundle);
+            }
+            LiveStreamsFragment searchFragment = (LiveStreamsFragment) fragment;
+            searchFragment.setSearchQuery(query);
+            searchFragment.searchStreams();
+            replaceFragment(searchFragment, "search");
+            Log.d("Search Query", query);
+        }
         if (intent.getBooleanExtra("startStream", false)) {
             NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             notificationManager.cancel(1234);
             startStream(intent.getStringExtra("channel"));
         }
+        if (intent.getBooleanExtra("showMarathon", false)) {
+            NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            notificationManager.cancel(1234);
+            showMarathonFragment();
+        }
+    }
+
+    public void showMarathonFragment() {
+        Fragment fragmentMarathon = new MarathonFragment();
+        replaceFragment(fragmentMarathon, Constants.FRAGMENT_MARATHON);
     }
 
     private void updatePreferences() {
@@ -420,7 +485,7 @@ public class MainActivity extends AppCompatActivity
 
     private void updateNavigationMenu() {
         Menu menu = navigationView.getMenu();
-        if (firebaseRemoteConfig.getBoolean(Constants.MARATHON_RUNNING)) {
+        if (firebaseRemoteConfig.getBoolean(Constants.MARATHON_RUNNING) && !login.equals(Constants.NO_USER) || BuildConfig.DEBUG) {
             menu.findItem(R.id.marathon).setVisible(true);
             menu.findItem(R.id.marathon).setTitle(firebaseRemoteConfig.getString(Constants.MARATHON_NAME));
         } else {
@@ -460,6 +525,22 @@ public class MainActivity extends AppCompatActivity
         return login;
     }
 
+    public String getUserID() {
+        Log.d("MainActivity", "Before userID " + userID);
+        boolean isPreference = preferences != null;
+        if (userID == null && isPreference) {
+            userID = preferences.getString(Constants.TWITCH_ID, Constants.NO_USER);
+            return userID;
+        } else if ((userID != null && userID.equals(Constants.NO_USER)) && isPreference) {
+            userID = preferences.getString(Constants.TWITCH_ID, Constants.NO_USER);
+        } else if (!isPreference) {
+            updatePreferences();
+            userID = preferences.getString(Constants.TWITCH_ID, Constants.NO_USER);
+        }
+        Log.d("MainActivity", "After userID " + userID);
+        return userID;
+    }
+
     public String getDisplayName() {
         Log.d("MainActivity", "Before DisplayName " + user);
         boolean isPreference = preferences != null;
@@ -482,8 +563,12 @@ public class MainActivity extends AppCompatActivity
             public void onResponse(Call<KrakenBase> call, Response<KrakenBase> response) {
                 if (response.code() == 200) {
                     String login = response.body().token().user_name();
-                    preferences.edit().putString("login", login).apply();
-                    getChannel(login);
+                    String userID = response.body().token().user_id();
+                    preferences.edit()
+                            .putString(Constants.LOGIN, login)
+                            .putString(Constants.TWITCH_ID, userID)
+                            .apply();
+                    getChannel(userID);
                 }
             }
 
@@ -492,10 +577,6 @@ public class MainActivity extends AppCompatActivity
                 Log.d("getBase onFailure", t.getMessage());
             }
         });
-    }
-
-    public long getReloadTimestamp() {
-        return reloadTimestamp;
     }
 
     public void getChannel(String channel) {
@@ -602,6 +683,12 @@ public class MainActivity extends AppCompatActivity
         replaceFragment(fragment, "gameStreams");
     }
 
+    public void showCommunityStreams(Bundle args) {
+        Fragment fragment = new LiveStreamsFragment();
+        fragment.setArguments(args);
+        replaceFragment(fragment, "communityStreams");
+    }
+
     public void startStream(String channel) {
         TwitchKraken.getService().getChannel(channel).enqueue(new Callback<Channel>() {
             @Override
@@ -616,8 +703,22 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
+    public void startStreamWithOtherChat(String channel, final String chatRoom) {
+        TwitchKraken.getService().getChannel(channel).enqueue(new Callback<Channel>() {
+            @Override
+            public void onResponse(Call<Channel> call, Response<Channel> response) {
+                //Utils.startPlayerActivity(MainActivity.this, response.body(), chatRoom);
+            }
+
+            @Override
+            public void onFailure(Call<Channel> call, Throwable t) {
+
+            }
+        });
+    }
+
     private void replaceFragment(Fragment fragment, String tag) {
-        replaceFragment(fragment, tag , true);
+        replaceFragment(fragment, tag, true);
     }
 
     private void replaceFragment(Fragment fragment, String tag , boolean backStack) {

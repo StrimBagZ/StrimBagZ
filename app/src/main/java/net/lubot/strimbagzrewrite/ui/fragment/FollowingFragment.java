@@ -18,6 +18,7 @@
  */
 package net.lubot.strimbagzrewrite.ui.fragment;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
@@ -27,13 +28,18 @@ import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
 import net.lubot.strimbagzrewrite.Constants;
 import net.lubot.strimbagzrewrite.R;
+import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
+import net.lubot.strimbagzrewrite.data.model.Twitch.LiveStreams;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 import net.lubot.strimbagzrewrite.ui.adapter.FollowingFragmentPager;
+import net.lubot.strimbagzrewrite.util.CustomFragmentPagerAdapter;
+import net.lubot.strimbagzrewrite.util.Utils;
 
 public class FollowingFragment extends Fragment {
 
@@ -58,6 +64,74 @@ public class FollowingFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_following, container, false);
+    }
+
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        Log.d("onContextSelect", "group id: " + item.getGroupId());
+        Log.d("onContextSelect", "item id: " + item.getItemId());
+        int groupID = item.getGroupId();
+        if (groupID == 0) {
+            // If the item has no group ID we don't care about it
+            return true;
+        }
+        Fragment fragment = pagerAdapter.getCurrentPrimaryItem();
+        Channel channel  = null;
+        String hostingChannel = null;
+        // Since we use a ViewPager we need to make sure we get the data from the right Fragment
+        boolean hostedChat = false;
+        if (groupID == R.id.ctx_streams) {
+            LiveStreamsFragment liveFragment = (LiveStreamsFragment) fragment;
+            channel = liveFragment.getSelectedChannel();
+        } else if (groupID == R.id.ctx_hosting) {
+            HostedStreamsFragment hostedFragment = (HostedStreamsFragment) fragment;
+            channel = hostedFragment.getSelectedChannel();
+        } else if (groupID == 429691) {
+            HostedStreamsFragment hostedFragment = (HostedStreamsFragment) fragment;
+            channel = hostedFragment.getSelectedChannel();
+            hostingChannel = hostedFragment.getClickedHostingItem();
+            Log.d("Hosted Streams", "Hosted Chat items choosed");
+            hostedChat = true;
+        }
+
+        if (channel == null) {
+            Log.d("onContextSelect", "channel is null. This should never happen.");
+            return true;
+        }
+
+        if (hostedChat) {
+            Log.d("Hosted Channel", "Loading " + channel.displayName() + " with " + hostingChannel + " chat");
+            if (getActivity() instanceof MainActivity) {
+                Utils.startPlayerActivity(getContext(), channel, hostingChannel);
+            }
+            return true;
+        }
+
+        switch(item.getItemId()) {
+            case R.id.ctn_openStream_Mobile:
+                Utils.startPlayerActivity(getContext(), channel, "mobile");
+                break;
+            case R.id.ctn_openStream_Low:
+                Utils.startPlayerActivity(getContext(), channel, "low");
+                break;
+            case R.id.ctn_openStream_Medium:
+                Utils.startPlayerActivity(getContext(), channel, "medium");
+                break;
+            case R.id.ctn_openStream_High:
+                Utils.startPlayerActivity(getContext(), channel, "high");
+                break;
+            case R.id.ctn_openStream_Source:
+                Utils.startPlayerActivity(getContext(), channel, "source");
+                break;
+            case R.id.ctn_openChatOnly:
+                Utils.startChatOnlyActivity(getContext(), channel);
+                break;
+            default:
+                Utils.startPlayerActivity(getContext(), channel);
+                break;
+        }
+        return true;
     }
 
     @Override

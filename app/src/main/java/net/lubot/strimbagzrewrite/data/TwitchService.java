@@ -20,8 +20,10 @@ package net.lubot.strimbagzrewrite.data;
 
 import net.lubot.strimbagzrewrite.data.model.Twitch.AccessToken;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
+import net.lubot.strimbagzrewrite.data.model.Twitch.CommunityObject;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Directory;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Ember;
+import net.lubot.strimbagzrewrite.data.model.Twitch.FollowedChannels;
 import net.lubot.strimbagzrewrite.data.model.Twitch.FollowedGame;
 import net.lubot.strimbagzrewrite.data.model.Twitch.FollowedHosting;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Hosts;
@@ -36,7 +38,6 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.DELETE;
 import retrofit2.http.GET;
-import retrofit2.http.Header;
 import retrofit2.http.Headers;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
@@ -59,7 +60,7 @@ public interface TwitchService {
         @GET("channels/{channel}")
         Call<Channel> getChannel(@Path("channel") String channel);
 
-        @GET("streams/followed")
+        @GET("streams/followed?api_version=5")
         @Headers("Requires-Authentication: true")
         Call<LiveStreams> getLiveStreams();
 
@@ -67,14 +68,21 @@ public interface TwitchService {
         Call<LiveStreams> getStreams(@Query("game") String game, @Query("channel") String channel,
                                      @Query("offset") int offset, @Query("limit") int limit);
 
+        @GET("streams?api_version=5")
+        Call<LiveStreams> getCommunityStreams(@Query("community_id") String id,
+                                     @Query("offset") int offset, @Query("limit") int limit);
+
         @GET("streams/{channel}")
         Call<StreamObject> getStreamStatus(@Path("channel") String channel);
 
         @GET("games/top")
-        Call<Directory> getDirectory();
+        Call<Directory> getDirectory(@Query("limit") int limit, @Query("offset") int offset);
 
-        @GET
-        Call<Directory> getDirectoryPagination(@Url String url);
+        @GET("search/streams")
+        Call<LiveStreams> searchStreams(@Query("query") String query);
+
+        @GET("users/{user}/follows/channels")
+        Call<FollowedChannels> getFollowedChannels(@Path("user") String user, @Query("offset") int offset);
 
         @GET("users/{user}/follows/channels/{target}")
         Call<Void> checkFollow(@Path("user") String user, @Path("target") String target);
@@ -86,6 +94,16 @@ public interface TwitchService {
         @DELETE("users/{user}/follows/channels/{target}")
         @Headers("Requires-Authentication: true")
         Call<Void> unfollowChannel(@Path("user") String user, @Path("target") String target);
+
+        // Communities
+        @GET("communities/top?api_version=5")
+        Call<CommunityObject> getTopCommunities();
+
+        @GET("communities/top?api_version=5")
+        Call<CommunityObject> getMoreTopCommunities(@Query("cursor") String cursor);
+
+        @GET("communities/{id}?api_version=5")
+        Call<Void> getCommunity(@Path("id") String id);
     }
 
     interface TwitchAPIService {

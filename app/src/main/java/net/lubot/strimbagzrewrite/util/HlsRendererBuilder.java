@@ -137,9 +137,9 @@ public class HlsRendererBuilder implements RendererBuilder {
 
             // Build the video/audio/metadata renderers.
             DataSource dataSource = new DefaultUriDataSource(context, bandwidthMeter, userAgent);
-            HlsChunkSource chunkSource = new HlsChunkSource(true /* isMaster */, dataSource, url,
-                    manifest, DefaultHlsTrackSelector.newDefaultInstance(context), bandwidthMeter,
-                    timestampAdjusterProvider, HlsChunkSource.ADAPTIVE_MODE_SPLICE);
+            HlsChunkSource chunkSource = new HlsChunkSource(true /* isMaster */, dataSource, manifest,
+                    DefaultHlsTrackSelector.newDefaultInstance(context), bandwidthMeter,
+                    timestampAdjusterProvider);
             HlsSampleSource sampleSource = new HlsSampleSource(chunkSource, loadControl,
                     MAIN_BUFFER_SEGMENTS * BUFFER_SEGMENT_SIZE, mainHandler, player, Player.TYPE_VIDEO);
             MediaCodecVideoTrackRenderer videoRenderer = new MediaCodecVideoTrackRenderer(context,
@@ -160,8 +160,8 @@ public class HlsRendererBuilder implements RendererBuilder {
             if (preferWebvtt) {
                 DataSource textDataSource = new DefaultUriDataSource(context, bandwidthMeter, userAgent);
                 HlsChunkSource textChunkSource = new HlsChunkSource(false /* isMaster */, textDataSource,
-                        url, manifest, DefaultHlsTrackSelector.newVttInstance(), bandwidthMeter,
-                        timestampAdjusterProvider, HlsChunkSource.ADAPTIVE_MODE_SPLICE);
+                        manifest, DefaultHlsTrackSelector.newSubtitleInstance(), bandwidthMeter,
+                        timestampAdjusterProvider);
                 HlsSampleSource textSampleSource = new HlsSampleSource(textChunkSource, loadControl,
                         TEXT_BUFFER_SEGMENTS * BUFFER_SEGMENT_SIZE, mainHandler, player, Player.TYPE_TEXT);
                 textRenderer = new TextTrackRenderer(textSampleSource, player, mainHandler.getLooper());

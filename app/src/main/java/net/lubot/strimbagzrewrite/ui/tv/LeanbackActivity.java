@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Nicola Fäßler
+ * Copyright 2017 Nicola Fäßler
  *
  * This file is part of StrimBagZ.
  *
@@ -16,27 +16,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.lubot.strimbagzrewrite.ui.fragment;
+package net.lubot.strimbagzrewrite.ui.tv;
 
+import android.app.Activity;
 import android.os.Bundle;
-import android.support.v4.app.DialogFragment;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 
-import net.lubot.strimbagzrewrite.data.model.FrankerFaceZ.SRLRaceEntrant;
+import net.lubot.strimbagzrewrite.R;
 
-import java.util.ArrayList;
-
-public class SRLRaceFragment extends DialogFragment {
-
-    public static SRLRaceFragment newInstance(ArrayList<SRLRaceEntrant> entrants) {
-        SRLRaceFragment fragment = new SRLRaceFragment();
-        return fragment;
-    }
+public class LeanbackActivity extends Activity {
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return super.onCreateView(inflater, container, savedInstanceState);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_leanback);
     }
+
 }

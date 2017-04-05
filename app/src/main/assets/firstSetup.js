@@ -1,5 +1,6 @@
 function firstSetup() {
 var checkSetup = window.localStorage.getItem('firstSetup');
+var checkSetupSecond = window.localStorage.getItem('secondSetup');
 	if (checkSetup === undefined || checkSetup === null) {
 		window.localStorage.setItem('firstSetup', 'true');
 		window.localStorage.setItem('ffz_setting_chat_padding', 'true');
@@ -16,6 +17,11 @@ var checkSetup = window.localStorage.getItem('firstSetup');
 		window.localStorage.setItem('ffz_setting_srl_races', 'false');
 		window.localStorage.setItem('ffz_setting_stream_title', 'false');
 		window.localStorage.setItem('TwitchCache:chatReplay', 'true');
+	}
+
+	if (checkSetupSecond === undefined || checkSetupSecond === null) {
+        window.localStorage.setItem('ffz_setting_bits_pinned', '0');
+        window.localStorage.setItem('ffz_setting_bits_tags_container', 'false');
 	}
 }
 

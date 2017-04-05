@@ -10,6 +10,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.WindowManager;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
@@ -25,13 +26,15 @@ import net.lubot.strimbagzrewrite.ui.adapter.EmptyRecyclerViewAdapter;
 import net.lubot.strimbagzrewrite.ui.adapter.StreamsAdapter;
 import net.lubot.strimbagzrewrite.util.Utils;
 
+import org.polaric.colorful.CActivity;
+
 import java.util.ArrayList;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class RaceActivity extends AppCompatActivity {
+public class RaceActivity extends CActivity {
 
     private RecyclerView recyclerView;
     private RecyclerView.LayoutManager layoutManager;
@@ -42,8 +45,9 @@ public class RaceActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Utils.onActivityCreateSetTheme(this);
         super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         setContentView(R.layout.activity_race);
 
         Intent intent = getIntent();

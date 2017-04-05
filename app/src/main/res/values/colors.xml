@@ -13,4 +13,30 @@
     <color name="status_online">#669900</color>
     <color name="status_offline">#CC0000</color>
     <color name="navigation">#6200ea</color>
+
+    <color name="race_first">#1effff00</color>
+    <color name="race_second">#1e808080</color>
+    <color name="race_third">#1ed26400</color>
+    <color name="race_forfeit">#1eff0000</color>
+
+    <color name="run_going">#8d1dae00</color>
+    <color name="run_next">#8d15a0bc</color>
+    <color name="run_ogre">#8d2e2e2e</color>
+    <color name="background_gradient_start">#000000</color>
+    <color name="background_gradient_end">#DDDDDD</color>
+    <color name="fastlane_background">#0096a6</color>
+    <color name="search_opaque">#ffaa3f</color>
+    <color name="selected_background">#ffaa3f</color>
+    <color name="detail_background">#0096a6</color>
+    <color name="soft_opaque">#30000000</color>
+    <color name="img_soft_opaque">#30FF0000</color>
+    <color name="img_full_opaque">#00000000</color>
+    <color name="black_opaque">#AA000000</color>
+    <color name="black">#59000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="orange_transparent">#AAFADCA7</color>
+    <color name="orange">#FADCA7</color>
+    <color name="yellow">#EEFF41</color>
+    <color name="default_background">#3d3d3d</color>
+
 </resources>

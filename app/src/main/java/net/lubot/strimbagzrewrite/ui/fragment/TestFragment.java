@@ -23,8 +23,6 @@ import net.lubot.strimbagzrewrite.ui.activity.LoginActivity;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 import net.lubot.strimbagzrewrite.ui.activity.PlayerActivity;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.Executor;
@@ -114,7 +112,7 @@ public class TestFragment extends Fragment {
                 if (response.isSuccessful()) {
                     AccessToken token = response.body();
                     String url = "https://usher.ttvnw.net/api/channel/hls/{channel}.m3u8";
-                    url = StringUtils.replace(url, "{channel}", channel);
+                    url = url.replace("{channel}", channel);
                     Uri uri = Uri.parse(url)
                             .buildUpon()
                             .appendQueryParameter("allow_audio_only", "false")

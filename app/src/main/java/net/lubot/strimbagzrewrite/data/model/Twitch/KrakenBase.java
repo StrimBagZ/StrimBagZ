@@ -29,6 +29,7 @@ public abstract class KrakenBase {
     @AutoValue
     public static abstract class BaseToken {
         public abstract String user_name();
+        public abstract String user_id();
         
         public static JsonAdapter<BaseToken> jsonAdapter(Moshi moshi) {  
             return new AutoValue_KrakenBase_BaseToken.MoshiJsonAdapter(moshi);

@@ -18,16 +18,18 @@
  */
 package net.lubot.strimbagzrewrite.ui.adapter;
 
+import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
 import android.view.ViewGroup;
 
 import net.lubot.strimbagzrewrite.ui.fragment.HostedStreamsFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.LiveGamesFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.LiveStreamsFragment;
+import net.lubot.strimbagzrewrite.util.CustomFragmentPagerAdapter;
 
-public class FollowingFragmentPager extends FragmentPagerAdapter {
+public class FollowingFragmentPager extends CustomFragmentPagerAdapter {
     private int pageCount = 3;
     private String tabTitles[] = new String[] { "Live", "Hosting", "Games" };
 

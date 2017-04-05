@@ -20,6 +20,7 @@ package net.lubot.strimbagzrewrite.data;
 
 import com.squareup.moshi.Moshi;
 
+import net.lubot.strimbagzrewrite.BuildConfig;
 import net.lubot.strimbagzrewrite.data.model.AdapterFactory;
 
 import okhttp3.OkHttpClient;
@@ -39,15 +40,18 @@ public class SpeedRunsLive {
     public static SpeedRunsLiveService getService() {
         if(SRL_SERVICE == null) {
             OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+            if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+                logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+                httpClient.addInterceptor(logging);
+            }
             Moshi moshi = new Moshi.Builder()
                     .add(AdapterFactory.create())
                     .build();
             Retrofit retrofit = new Retrofit.Builder()
                     .baseUrl(BASE_URL)
                     .addConverterFactory(MoshiConverterFactory.create(moshi))
-                    .client(httpClient.addInterceptor(logging).build())
+                    .client(httpClient.build())
                     .build();
             SRL_SERVICE = retrofit.create(SpeedRunsLiveService.class);
         }

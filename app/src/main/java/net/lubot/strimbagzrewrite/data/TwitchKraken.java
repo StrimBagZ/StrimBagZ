@@ -52,15 +52,18 @@ public class TwitchKraken {
     public static TwitchKrakenService getService() {
         if(TWITCH_SERVICE == null) {
             OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+            if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+                logging.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+                httpClient.addInterceptor(logging);
+            }
             httpClient.addInterceptor(new Interceptor() {
                 @Override
                 public Response intercept(Interceptor.Chain chain) throws IOException {
                     Request original = chain.request();
                     Request.Builder request = original.newBuilder()
                             .addHeader("User-Agent", System.getProperty("http.agent"))
-                            .header("Accept", "application/vnd.twitchtv.3+json")
+                            .header("Accept", "application/vnd.twitchtv.v3+json")
                             .header("Client-ID", BuildConfig.CLIENT_ID)
                             .method(original.method(), original .body());
                     if (original.header("Requires-Authentication") != null) {
@@ -76,7 +79,6 @@ public class TwitchKraken {
                     return chain.proceed(request.build());
                 }
             });
-            httpClient.addInterceptor(logging);
             Moshi moshi = new Moshi.Builder().add(AdapterFactory.create()).build();
             Retrofit retrofit = new Retrofit.Builder()
                     .baseUrl(BASE_URL)

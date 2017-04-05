@@ -29,11 +29,14 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 
+import net.lubot.strimbagzrewrite.data.model.Twitch.Directory;
+import net.lubot.strimbagzrewrite.data.model.Twitch.DirectoryGame;
 import net.lubot.strimbagzrewrite.data.model.Twitch.FollowedGame.FollowedGames;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Game;
 import net.lubot.strimbagzrewrite.R;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,11 +45,26 @@ public class GamesAdapter extends RecyclerView.Adapter<GamesAdapter.ViewHolder> 
     private Fragment fragment;
     private boolean isTablet;
     private List<FollowedGames> data;
+    private List<DirectoryGame> dataTop;
+
+    private boolean isDirectory;
+    private long lastUpdated;
 
     public GamesAdapter(Fragment context) {
         this.fragment = context;
         this.isTablet = fragment.getContext().getResources().getBoolean(R.bool.isTablet);
         this.data = new ArrayList<>();
+    }
+
+    public GamesAdapter(Fragment context, boolean isDirectory) {
+        this.fragment = context;
+        this.isTablet = fragment.getContext().getResources().getBoolean(R.bool.isTablet);
+        this.isDirectory = isDirectory;
+        if (!isDirectory) {
+            this.data = new ArrayList<>();
+        } else {
+            this.dataTop = new ArrayList<>();
+        }
     }
 
     @Override
@@ -56,7 +74,11 @@ public class GamesAdapter extends RecyclerView.Adapter<GamesAdapter.ViewHolder> 
     }
 
     public void clear() {
-        this.data.clear();
+        if (!isDirectory) {
+            this.data.clear();
+        } else {
+            this.dataTop.clear();
+        }
         notifyDataSetChanged();
     }
 
@@ -65,45 +87,92 @@ public class GamesAdapter extends RecyclerView.Adapter<GamesAdapter.ViewHolder> 
         notifyDataSetChanged();
     }
 
+    public void addMore(List<FollowedGames> data) {
+        int position = getItemCount();
+        this.data.addAll(data);
+        notifyItemRangeInserted(position, data.size());
+    }
+
+    public void addAllTop(List<DirectoryGame> data) {
+        this.dataTop.addAll(data);
+        notifyDataSetChanged();
+    }
+
+    public void addMoreTop(List<DirectoryGame> data) {
+        int position = getItemCount();
+        this.dataTop.addAll(data);
+        notifyItemRangeInserted(position, data.size());
+    }
+
+    public long getLastUpdated() {
+        return lastUpdated;
+    }
+
+    public void setLastUpdated(long lastUpdated) {
+        this.lastUpdated = lastUpdated;
+    }
+
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        FollowedGames tmp = data.get(position);
-        holder.gameTitle.setText(tmp.game().name());
-        holder.game = tmp.game();
-
-        if (!isTablet) {
-            Glide.with(fragment)
-                    .load(tmp.game().box().medium())
-                    .into(holder.box);
+        if (!isDirectory) {
+            FollowedGames tmp = data.get(position);
+            holder.gameTitle.setText(tmp.game().name());
+            holder.viewcount.setText("Viewers: "  + NumberFormat.getInstance().format(tmp.viewers()));
+            if (!isTablet) {
+                Glide.with(fragment)
+                        .load(tmp.game().box().medium())
+                        .into(holder.box);
+            } else {
+                Glide.with(fragment)
+                        .load(tmp.game().box().large())
+                        .into(holder.box);
+            }
         } else {
-            Glide.with(fragment)
-                    .load(tmp.game().box().large())
-                    .into(holder.box);
+            DirectoryGame tmp = dataTop.get(position);
+            holder.gameTitle.setText(tmp.game().name());
+            holder.viewcount.setText("Viewers: "  + NumberFormat.getInstance().format(tmp.viewers()));
+            if (!isTablet) {
+                Glide.with(fragment)
+                        .load(tmp.game().box().medium())
+                        .into(holder.box);
+            } else {
+                Glide.with(fragment)
+                        .load(tmp.game().box().large())
+                        .into(holder.box);
+            }
         }
     }
 
     @Override
     public int getItemCount() {
-        return data.size();
+        if (!isDirectory) {
+            return data.size();
+        } else {
+            return dataTop.size();
+        }
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         private ImageView box;
         private TextView gameTitle;
-
-        private Game game;
+        private TextView viewcount;
 
         public ViewHolder(View item) {
             super(item);
             box = (ImageView) item.findViewById(R.id.imgBox);
             gameTitle = (TextView) item.findViewById(R.id.gameTitle);
+            viewcount = (TextView) item.findViewById(R.id.viewerCount);
             item.setOnClickListener(this);
         }
 
         @Override
         public void onClick(View v) {
             Bundle bundle = new Bundle();
-            bundle.putString("game", game.name());
+            if (!isDirectory) {
+                bundle.putString("game", data.get(getAdapterPosition()).game().name());
+            } else {
+                bundle.putString("game", dataTop.get(getAdapterPosition()).game().name());
+            }
             ((MainActivity) fragment.getActivity()).showStreams(bundle);
         }
 

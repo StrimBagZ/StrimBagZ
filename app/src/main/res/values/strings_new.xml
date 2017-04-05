@@ -1,17 +1,26 @@
 <resources>
     <string name="app_name_new">StrimBagZ Rewrite</string>
     <string name="btn_host">Host</string>
+    <string name="communities_title">Communities</string>
     <string name="srl_title">SpeedRunsLive</string>
+    <string name="games_title">Browse Games</string>
 
     <string name="ctx_stream_options">Options</string>
+    <string name="ctx_stream_specific_chat">Open Stream (Hosted Chat)</string>
 
     <string name="following_empty_live">No Channels live\nNobody is streaming right now</string>
     <string name="network_error">Unable to resolve host\nCheck if you\'re connected to any network</string>
+    <string name="srl_streams_error">Couldn\'t get streams from SRL\nSRL API is in maintenance</string>
     <string name="races_empty">No ongoing Races</string>
+    <string name="races_invalid_data">Race Data invalid, try again in a few</string>
     <string name="refresh">Refresh</string>
     <string name="retry_call">Retry</string>
 
     <!-- Settings -->
+    <string name="primary_color">Primary Color</string>
+    <string name="primary_color_desc">Customize the Primary Color</string>
+    <string name="accent_color">Accent Color</string>
+    <string name="accent_color_desc">Customize the Accent Color</string>
     <string name="quality_default_value">medium</string>
     <string name="quality_mobile_default_value">mobile</string>
 
@@ -19,6 +28,9 @@
     <string name="settings_category_notifications">Notifications</string>
     <string name="settings_quality"> Default Quality</string>
     <string name="settings_quailty_mobile">Default Quality (Mobile Data)</string>
-    <string name="settings_dark_theme">Dark Theme</string>
+    <string name="settings_dark_theme">Dark Mode</string>
     <string name="notification_watch">Watch</string>
+    <string name="notification_marathon_button">Show Info</string>
+
+    <string name="followed_channels">Followed Channels</string>
 </resources>

@@ -19,6 +19,7 @@
 package net.lubot.strimbagzrewrite.ui.fragment;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -36,11 +37,17 @@ import net.lubot.strimbagzrewrite.ui.activity.LoginActivity;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 import net.lubot.strimbagzrewrite.util.Utils;
 
+import org.polaric.colorful.ColorPickerDialog;
+import org.polaric.colorful.ColorPickerPreference;
+import org.polaric.colorful.Colorful;
+
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     private final String LOGIN = "setting_login";
     private final String LOGOUT = "setting_logout";
     private final String REFRESH_TOKEN = "setting_refresh_token";
+    private final String COLOR_PRIMARY = "setting_primary_color";
+    private final String COLOR_ACCENT = "setting_accent_color";
 
     private Activity activity;
 
@@ -56,13 +63,32 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
             ((MainActivity) getActivity()).setTitle("Settings");
         }
         getPreferenceManager().setSharedPreferencesName(Constants.SETTINGS);
-        if (getPreferenceManager().getSharedPreferences().getString("oauth_token", null) == null) {
+        if (getPreferenceManager().getSharedPreferences()
+                .getString(Constants.OAUTH, Constants.NO_TOKEN).equals(Constants.NO_TOKEN)) {
             setPreferencesFromResource(R.xml.preferences, null);
         } else {
             setPreferencesFromResource(R.xml.preferences_loggedin, null);
         }
         PreferenceManager.setDefaultValues(activity, Constants.SETTINGS, 0, R.xml.preferences, false);
         getPreferenceManager().getSharedPreferences().registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getPreferenceManager().getSharedPreferences().registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        getPreferenceManager().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        getPreferenceManager().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(this);
     }
 
     @Override
@@ -84,9 +110,18 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     @Override
     public void onSharedPreferenceChanged(SharedPreferences preferences, String key) {
         if (key.equals("setting_dark_theme")) {
-            preferences.edit().putBoolean("recreateSettings", true).apply();
+            preferences.edit().putBoolean(Constants.RECREATE_SETTINGS, true).apply();
+            boolean darkTheme = preferences.getBoolean(Constants.SETTING_DARK_THEME, false);
+            Colorful.config(activity)
+                    .dark(darkTheme)
+                    .apply();
             Utils.restartActivity(activity);
         }
+        if (key.equals("COLORFUL_PREF_KEY")) {
+            preferences.edit().putBoolean(Constants.RECREATE_SETTINGS, true).apply();
+            Utils.restartActivity(activity);
+        }
+        Log.d("onSharedChange", key);
     }
 
     private void loginUser() {
@@ -111,4 +146,5 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         editor.apply();
         Utils.restartActivity(activity);
     }
+
 }

@@ -20,6 +20,7 @@ package net.lubot.strimbagzrewrite.data;
 
 import com.squareup.moshi.Moshi;
 
+import net.lubot.strimbagzrewrite.BuildConfig;
 import net.lubot.strimbagzrewrite.data.model.AdapterFactory;
 import net.lubot.strimbagzrewrite.data.TwitchService.TwitchAPIService;
 
@@ -45,8 +46,11 @@ public class TwitchAPI {
     public static TwitchAPIService getService() {
         if(TWITCH_SERVICE == null) {
             OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-            HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+            if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+                logging.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+                httpClient.addInterceptor(logging);
+            }
             httpClient.addInterceptor(new Interceptor() {
                 @Override
                 public Response intercept(Chain chain) throws IOException {
@@ -62,7 +66,7 @@ public class TwitchAPI {
             Retrofit retrofit = new Retrofit.Builder()
                     .baseUrl(BASE_URL)
                     .addConverterFactory(MoshiConverterFactory.create(moshi))
-                    .client(httpClient.addInterceptor(logging).build())
+                    .client(httpClient.build())
                     .build();
             TWITCH_SERVICE = retrofit.create(TwitchAPIService.class);
         }

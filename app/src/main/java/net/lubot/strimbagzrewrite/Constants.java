@@ -52,13 +52,18 @@ public class Constants {
 
     // Fragments
     public static final String FRAGMENT_FOLLOWING = "following";
+    public static final String FRAGMENT_COMMUNTIES = "communities";
     public static final String FRAGMENT_SRL = "srl";
     public static final String FRAGMENT_MARATHON = "marathon";
     public static final String FRAGMENT_SETTINGS = "preferences";
 
+    public static final int FOLLOWING_CONTEXT_MENU = 694201337;
+    public static final int HOSTED_CONTEXT_MENU = 420133769;
+
     public static final String SETTINGS = "net.lubot.strimbagz_preferences";
     public static final int LOGGED_IN = 1337;
 
+    public static final String USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36 StrimBagZ";
     public static final String URL_TWITCH_LOGIN = "https://secure.twitch.tv/login";
     public static final String URL_TWITCH_AUTHENTICATION =
             "https://api.twitch.tv/kraken/oauth2/authorize" +
@@ -70,6 +75,8 @@ public class Constants {
     public static final String URL_HOST = URL_TMI_HOSTS + "&host=";
     public static final String URL_HOST_TARGET = URL_TMI_HOSTS + "&target=";
     public static final String URL_USHER = "https://usher.ttvnw.net/api/channel/hls/{channel}.m3u8";
+
+    public static final String URL_GDQ_SCHEDULE = "https://lubot.net/strimbagz/gdq/schedule.json";
 
     // Stream
     public static final String STREAM_STOPPED = "com.google.android.exoplayer.upstream.HttpDataSource$InvalidResponseCodeException: Response code: 404";

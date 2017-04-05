@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:id="@+id/ctx_hosting">
+        <item
+            android:id="@+id/ctn_openStream_Source"
+            android:title="@string/cnt_menu_stream_source" />
+        <item
+            android:id="@+id/ctn_openStream_High"
+            android:title="@string/cnt_menu_stream_high" />
+        <item
+            android:id="@+id/ctn_openStream_Medium"
+            android:title="@string/cnt_menu_stream_meidum" />
+        <item
+            android:id="@+id/ctn_openStream_Low"
+            android:title="@string/cnt_menu_stream_low" />
+        <item
+            android:id="@+id/ctn_openStream_Mobile"
+            android:title="@string/cnt_menu_stream_mobile" />
+
+        <item
+            android:id="@+id/ctn_openStream_specific_chat"
+            android:title="@string/ctx_stream_specific_chat"
+            android:visible="false"/>
+
+        <!-- <item
+             android:id="@+id/ctn_openStreamOnly"
+             android:title="@string/cnt_menu_streamonly" /> -->
+        <item
+            android:id="@+id/ctn_openChatOnly"
+            android:title="@string/cnt_menu_chatonly" />
+    </group>
+
+</menu>

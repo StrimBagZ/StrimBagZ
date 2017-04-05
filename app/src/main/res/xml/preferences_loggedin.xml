@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.v7.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <android.support.v7.preference.SwitchPreferenceCompat
-        android:title="@string/settings_dark_theme"
-        android:key="setting_dark_theme"
-        android:defaultValue="false" />
+<android.support.v7.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:colorpicker="http://schemas.android.com/apk/res-auto">
+    <android.support.v7.preference.PreferenceCategory
+        android:title="Theme"
+        android:key="setting_key_theme">
+        <org.polaric.colorful.ColorPickerPreference
+            android:title="@string/primary_color"
+            android:key="setting_primary_color"
+            android:summary="@string/primary_color_desc"
+            colorpicker:primary_color="true"/>
+        <org.polaric.colorful.ColorPickerPreference
+            android:title="@string/accent_color"
+            android:key="setting_accent_color"
+            android:summary="@string/accent_color_desc"
+            colorpicker:accent_color="true"/>
+        <android.support.v7.preference.SwitchPreferenceCompat
+            android:title="@string/settings_dark_theme"
+            android:key="setting_dark_theme"
+            android:defaultValue="false" />
+    </android.support.v7.preference.PreferenceCategory>
     <android.support.v7.preference.PreferenceCategory
         android:title="@string/settings_category_account"
         android:key="setting_key_account">

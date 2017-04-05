@@ -1,3 +1,21 @@
+/*
+ * Copyright 2016 Nicola Fäßler
+ *
+ * This file is part of StrimBagZ.
+ *
+ * StrimBagZ is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package net.lubot.strimbagzrewrite.ui.activity
 
 import android.annotation.SuppressLint
@@ -45,8 +63,6 @@ import com.google.android.exoplayer.MediaFormat
 import com.google.android.exoplayer.audio.AudioCapabilities
 import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver
 import com.google.android.exoplayer.drm.UnsupportedDrmException
-import com.google.android.exoplayer.metadata.id3.Id3Frame
-import com.google.android.exoplayer.text.Cue
 import com.google.android.exoplayer.util.MimeTypes
 import com.google.android.exoplayer.util.Util
 import com.google.android.exoplayer.util.VerboseLogUtil
@@ -64,12 +80,16 @@ import net.lubot.strimbagzrewrite.data.model.FrankerFaceZ.SRLRaceEntrant
 import net.lubot.strimbagzrewrite.data.TwitchAPI
 import net.lubot.strimbagzrewrite.data.TwitchKraken
 import net.lubot.strimbagzrewrite.StrimBagZApplication
+import net.lubot.strimbagzrewrite.data.HoraroAPI
+import net.lubot.strimbagzrewrite.data.model.GDQ.Run
 import net.lubot.strimbagzrewrite.data.model.Twitch.*
+import net.lubot.strimbagzrewrite.ui.dialog.SRLRaceDialog
+import net.lubot.strimbagzrewrite.ui.dialog.ScheduleDialog
 import net.lubot.strimbagzrewrite.util.*
-import org.apache.commons.lang3.StringUtils
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import org.polaric.colorful.CActivity
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -81,8 +101,7 @@ import java.util.*
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.concurrent.*
 
-class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Listener,
-        Player.CaptionListener, Player.Id3MetadataListener, AudioCapabilitiesReceiver.Listener {
+class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, AudioCapabilitiesReceiver.Listener {
 
     private var contentFrame: FrameLayout? = null
     private var contentRelative: RelativeLayout? = null
@@ -114,6 +133,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
     private var quality: Int = 0
 
     private var channel: Channel = Channel.createEmpty()
+    private var chatRoom: String = "NONE"
     private var productExists: Boolean = false
 
     private var ws: WebSocket? = null
@@ -124,8 +144,13 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
     private var followButtonsMap = HashMap<String, String>()
     private var followButtons = ArrayList<String>()
     private var followChannel: String? = ""
+    private var blockCall: Boolean = false
 
-    private var raceEntrants: ArrayList<SRLRaceEntrant>? = ArrayList()
+    private var raceEntrants: ArrayList<SRLRaceEntrant> = ArrayList()
+    private var raceGame: String = ""
+    private var raceGoal: String = ""
+    private var raceStartTime: Long = 0
+    private var raceState: String = ""
 
     var contentUri: Uri? = null
 
@@ -139,30 +164,41 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Utils.onActivityCreateSetTheme(this@PlayerActivity)
 
         isTablet = resources.getBoolean(R.bool.isTablet)
         setContentView(R.layout.player_activity)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
 
 
         if (savedInstanceState != null) {
             Logger.i("savedInstanceState not null, restoring")
             channel = savedInstanceState.getParcelable("channel")
+            chatRoom = savedInstanceState.getString("chatRoom")
             chatOnly = savedInstanceState.getBoolean("chatOnly")
             VoD = savedInstanceState.getBoolean("VoD")
             streamFirstLoaded = false
-            getStreamURI(channel.name(), true)
+            if (!chatOnly) {
+                getStreamURI(channel.name(), true)
+                button_srl.setOnClickListener { showRaceEntrantsDialog() }
+            }
         } else {
             contentUri = intent.data
             Logger.i("Current contentUri: %s", contentUri)
             channel = intent.getParcelableExtra("channel")
+            chatRoom = intent.getStringExtra("chatRoom")
+            val loadChannel = intent.getBooleanExtra("loadChannel", false)
+            if (loadChannel) {
+                // Incomplete channel data, get the full channel data
+                getChannel(channel.name())
+            }
             chatOnly = intent.getBooleanExtra("chatOnly", false)
             VoD = intent.getBooleanExtra("VoD", false)
         }
 
-        StrimBagZApplication.currentChat = channel.name()
+        StrimBagZApplication.currentChat = chatRoom
 
         if (!chatOnly) {
             aspectRatio.setAspectRatio(1.78f) // 16:9
@@ -230,10 +266,48 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             setupTopController()
             setFollowButtons(null)
             connectWebSocket()
+            button_srl.setOnClickListener { showRaceEntrantsDialog() }
+            if (BuildConfig.DEBUG) {
+                //handelSRL(srlJsonOpen)
+            }
+            if (channel.name() == "gamesdonequick"
+                    || channel.name() == "speedrunsespanol" || channel.name() == "germenchrestream"
+                    || channel.name() == "lefrenchrestream" || channel.name() == "goldensplit" ) {
+                Timer("schedule", true).schedule(5000) {
+                    runOnUiThread {
+                        Snackbar.make(chatContainer, "Marathon Schedule available", Snackbar.LENGTH_LONG).show()
+                        controller?.show()
+                    }
+                }
+                button_schedule.visibility = VISIBLE
+                button_schedule.setOnClickListener {
+                    if (!blockCall) {
+                        blockCall = true
+                        getGDQSchedule()
+                    }
+                }
+            }
         }
         setChannelDescription()
+    }
 
-        //handelSRL(srlJson)
+    private fun getGDQSchedule() {
+        HoraroAPI.getService().getGDQData(Constants.URL_GDQ_SCHEDULE).enqueue(object : Callback<List<Run>> {
+            override fun onResponse(call: Call<List<Run>>, response: Response<List<Run>>) {
+                if (response.code() == 200) {
+                    showScheduleDialog(response.body())
+                } else {
+                    toast("Couldn't get Schedule, try again in a few")
+                }
+                blockCall = false
+            }
+
+            override fun onFailure(call: Call<List<Run>>, t: Throwable) {
+                Log.d("GDQ Failure", t.message)
+                toast("Couldn't get Schedule, try again in a few")
+                blockCall = false
+            }
+        })
     }
 
     fun setupTopController() {
@@ -541,8 +615,8 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
                 if (!url.equals("https://www.twitch.tv/${login}/chat")) {
                     if (url.startsWith("http:") || url.startsWith("https:")) {
                         Logger.i("URL Override %s", url)
-                        Logger.i("URL Override is YouTube: %b", StringUtils.contains(url, "youtube.com"))
-                        if (StringUtils.contains(url, "youtube.com") && player != null) {
+                        Logger.i("URL Override is YouTube: %b", url.contains("youtube.com"))
+                        if (url.contains("youtube.com") && player != null) {
                             player?.setMute(true)
                         }
                         showOverlay(url)
@@ -646,11 +720,11 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                 view.loadUrl(url)
                 Logger.i("URL Override %s", url)
-                Logger.i("URL Override is YouTube: %b", StringUtils.contains(url, "youtube.com"))
-                if (StringUtils.containsIgnoreCase(url, "https://m.youtube.com/") && player != null) {
+                Logger.i("URL Override is YouTube: %b", url.contains("youtube.com"))
+                if (url.contains("youtube.com") && player != null) {
                     player?.setMute(true)
                 }
-                if (StringUtils.containsIgnoreCase(url, "https://secure.xsolla.com/")) {
+                if (url.contains("secure.xsolla.com", true)) {
 
                 }
                 return true
@@ -666,7 +740,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
 
             override fun onPageFinished(view: WebView, url: String) {
                 if (overlayToolbar != null) {
-                    if (StringUtils.containsIgnoreCase(url, "https://secure.xsolla.com/")) {
+                    if (url.contains("secure.xsolla.com", true)) {
                         if (channel.displayName() != null) {
                             overlayTitle.text = "Subscribe to " + channel.displayName()
                         } else {
@@ -700,6 +774,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             chat?.settings?.useWideViewPort = true
             chat?.settings?.javaScriptCanOpenWindowsAutomatically = true
             chat?.settings?.cacheMode = WebSettings.LOAD_NO_CACHE
+            chat?.settings?.userAgentString = Constants.USER_AGENT
 
             chat?.addJavascriptInterface(strimBagInterface(), "strimBagInterface")
             chat?.setWebChromeClient(object : WebChromeClient() {
@@ -712,7 +787,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             })
             chat?.setWebViewClient(webViewClient)
             if (loggedIn) {
-                chat?.loadUrl("https://www.twitch.tv/${channel.name()}/chat")
+                chat?.loadUrl("https://www.twitch.tv/${chatRoom}/chat")
                 //chat?.loadUrl("file:///android_asset/chat/index.html")
             } else {
                 chat?.loadUrl("https://twitch.tv/login")
@@ -743,7 +818,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             chat?.setWebViewClient(webViewClient)
             // Change chat room if we're in a different chat
             if (StrimBagZApplication.previousChat != StrimBagZApplication.currentChat) {
-                StrimBagZApplication.chat?.post { chat?.loadUrl("javascript:(function (){strimBagInterface.changeChannel(strimBagInterface.oldChannel(),strimBagInterface.channel())}());") }
+                chat?.post { chat?.loadUrl("javascript:(function (){strimBagInterface.changeChannel(strimBagInterface.oldChannel(),strimBagInterface.channel())}());") }
             }
         }
 
@@ -966,7 +1041,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
     // AudioCapabilitiesReceiver.Listener methods
 
     override fun onAudioCapabilitiesChanged(audioCapabilities: AudioCapabilities) {
-        if (player == null) {
+        if (player == null && !chatOnly) {
             return
         }
         val backgrounded = player?.backgrounded
@@ -988,11 +1063,12 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
         }
 
     private fun preparePlayer(playWhenReady: Boolean) {
+        if (chatOnly) {
+            return
+        }
         if (player == null) {
             player = Player(rendererBuilder)
             player?.addListener(this)
-            player?.setCaptionListener(this)
-            player?.setMetadataListener(this)
             player?.seekTo(playerPosition)
             playerNeedsPrepare = true
             //controller?.setMediaPlayer(player?.playerControl)
@@ -1005,7 +1081,6 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
 
         player?.surface = videoSurface.holder.surface
         player?.playWhenReady = playWhenReady
-
     }
 
     private fun releasePlayer() {
@@ -1121,8 +1196,14 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             Toast.makeText(applicationContext, errorString, Toast.LENGTH_LONG).show()
         }
 
+        errorString = e.message
+
+        if (errorString == null) {
+            return
+        }
+
         // Stream ended
-        if (StringUtils.equals(e.message, Constants.STREAM_ENDED) || StringUtils.equals(e.message, Constants.STREAM_STOPPED)) {
+        if (errorString == Constants.STREAM_ENDED || errorString == Constants.STREAM_STOPPED) {
             surface_error.visibility = VISIBLE
             surface_text.visibility = VISIBLE
             surface_progress.visibility = GONE
@@ -1130,8 +1211,9 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
 
+
         // Connection lost
-        if (StringUtils.startsWith(e.message, Constants.STREAM_CONNECTION_LOST)) {
+        if (errorString.startsWith(Constants.STREAM_CONNECTION_LOST)) {
             Log.d("ExoPlayer onError", "Connection lost")
             surface_error.visibility = VISIBLE
             surface_text.visibility = VISIBLE
@@ -1152,7 +1234,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             Log.d("Video size", width.toString() + " x " + height.toString())
             Log.d("Video size", pixelWidthAspectRatio.toString())
             Log.d("Video size", aspect.toString())
-            videoSurface.setVideoWidthHeightRatio(aspect)
+            //videoSurface.setVideoWidthHeightRatio(aspect)
             aspectRatio.setAspectRatio(1.78f)
         } else {
             val tmp = width.toDouble() / height.toDouble()
@@ -1160,7 +1242,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
             Log.d("Video size", width.toString() + " x " + height.toString())
             Log.d("Video size", pixelWidthAspectRatio.toString())
             Log.d("Video size", aspect.toString())
-            videoSurface.setVideoWidthHeightRatio(aspect)
+            //videoSurface.setVideoWidthHeightRatio(aspect)
         }
     }
 
@@ -1266,21 +1348,10 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
         return true
     }
 
-    // NewPlayer.CaptionListener implementation
-
-    override fun onCues(cues: List<Cue>) {
-    }
-
-    // NewPlayer.MetadataListener implementation
-
-    override fun onId3Metadata(id3Frames: List<Id3Frame>) {
-
-    }
-
     // SurfaceHolder.Callback implementation
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        if (player != null) {
+        if (player != null && !chatOnly) {
             player?.surface = holder.surface
         }
     }
@@ -1569,11 +1640,11 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
     internal var webViewClient: WebViewClient = object : WebViewClient() {
 
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-            if (!url.equals("https://www.twitch.tv/${channel.name()}/chat")) {
+            if (!url.equals("https://www.twitch.tv/${chatRoom}/chat")) {
                 if (url.startsWith("http:") || url.startsWith("https:")) {
                     Log.d("urlOverride", "url: " + url)
-                    Log.d("urlOverride", "is YouTube: " + StringUtils.contains(url, "youtube.com"))
-                    if (StringUtils.contains(url, "youtube.com") && player != null) {
+                    Log.d("urlOverride", "is YouTube: " + url.contains("youtube.com"))
+                    if (url.contains("youtube.com") && player != null) {
                         player?.setMute(true)
                     }
                     showOverlay(url)
@@ -1611,13 +1682,11 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
                         val date = Calendar.getInstance().timeInMillis
                         Log.d("date", "time in milli: " + date)
                         chat?.loadUrl("javascript:(function (){document.getElementsByTagName('head')[0].appendChild(document.createElement('script')).src='//cdn.frankerfacez.com/script/script.min.js?_=$date';}());")
-                        chat?.loadUrl("javascript:(function (){document.getElementsByTagName('head')[0].appendChild(document.createElement('script')).src='//cdn.lordmau5.com/inject.js';}());")
+                        chat?.loadUrl("javascript:(function (){document.getElementsByTagName('head')[0].appendChild(document.createElement('script')).src='//cdn.lordmau5.com/ffz-ap/ffz-ap.min.js?_=$date';}());")
                     }
                     scriptLoaded = true
                     view.clearHistory()
                     view.clearCache(true)
-
-
                 }
                 //chat?.loadUrl("javascript:(function (){setupChat('$username', '$oauth', '$channel')}());")
                 //chat?.loadUrl("javascript:(function (){connectChat()}());")
@@ -1625,7 +1694,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
                 println("WebView URL is: " + url)
                 if (url.equals("http://www.twitch.tv/", ignoreCase = true) || url.equals("https://www.twitch.tv/", ignoreCase = true)) {
                     loggedIn = true
-                    view.loadUrl("https://www.twitch.tv/${channel.name()}/chat")
+                    view.loadUrl("https://www.twitch.tv/${chatRoom}/chat")
                     //view.loadUrl("file:///android_asset/chat/index.html")
                 }
             }
@@ -1730,13 +1799,15 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
 
         @JavascriptInterface
         fun changeChannel(old: String, c: String) {
+            Log.d("changeChannel", "Old: $old New: $c")
             chat?.post { chat?.loadUrl("javascript:(function (){" +
                     "var controller = App.__container__.lookup('controller:chat');" +
                     " var Room = App.__deprecatedInstance__.registry.resolve('model:room');" +
-                    " controller.focusRoom(Room.findOne('$c'));" +
-                    " r = ffz.rooms['$old'].room;" +
-                    " r.destroy();" +
-                    " delete r;" +
+                    " if ( ! ffz.rooms['$c'] || ! ffz.rooms['$c'].room ) {" +
+                    " Room.findOne('$c')" +
+                    " }" +
+                    " controller.focusRoom(ffz.rooms['$c'].room);" +
+                    " ffz._leave_room('$old')" +
                     "}());") }
         }
     }
@@ -1834,8 +1905,6 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
 
     }
 
-    // New Follow stuff
-
     private fun getServers(): Array<String> {
         return arrayOf(
                 "catbag.frankerfacez.com",
@@ -1846,7 +1915,10 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
 
     fun connectWebSocket() {
         val servers = getServers()
-        val server = servers[ThreadLocalRandom.current().nextInt(servers.size)]
+        var server = servers[ThreadLocalRandom.current().nextInt(servers.size)]
+        if (BuildConfig.DEBUG) {
+            server = "catbag.frankerfacez.com"
+        }
         Log.d("WebSocket", server)
         try {
             ws = WebSocketFactory().createSocket("wss://$server/", 5000)
@@ -1910,6 +1982,14 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
                         } else if (text.contains("srl_race")) {
                             Log.d("FFZ", "srl_race")
                             handelSRL(text)
+                        } else if (text.contains("event_schedule")) {
+                            // This is for GDQ only for now, so only check if it's a GDQ releated channel
+                            /*
+                            if (channel.name() == "gamesdonequick"
+                                    || channel.name() == "speedrunsespanol" || channel.name() == "germenchrestream"
+                                    || channel.name() == "lefrenchrestream" || channel.name() == "goldensplit" ) {
+                                handleEventSchedule(text)
+                            }*/
                         } else if (text.contains("do_authorize")) {
                             Log.d("FFZ", "do_authorize")
                             Log.d("FFZ", text)
@@ -1922,24 +2002,17 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
                     }
                     for ((k,v) in awaitAnswers) {
                         if (text.startsWith(k.toString())) {
-                            text = text.substring(text.indexOf("\""))
-                            text = text.replace("\"", "")
-                            receivedAnswers.put(text, v)
+                            if (!text.contains("error")) {
+                                text = text.substring(text.indexOf("\""))
+                                text = text.replace("\"", "")
+                                receivedAnswers.put(text, v)
+                            } else {
+                                receivedAnswers.put(v, v)
+                            }
                             awaitAnswers.remove(k)
                         }
                     }
 
-                    /*
-                    for (item: Int in awaitAnswers) {
-                        if (text.startsWith(item.toString())) {
-                            text = text.substring(text.indexOf("\""))
-                            text = text.replace("\"", "")
-                            Log.d("get_display_name", text)
-                            receivedAnswers.add(text)
-                            awaitAnswers.remove(item)
-                        }
-                    }
-                    */
                     if (receivedAnswers.isNotEmpty() && awaitAnswers.isEmpty()) {
                         runOnUiThread {
                             setFollowButtons(receivedAnswers)
@@ -1967,8 +2040,8 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
                 override fun onDisconnected(websocket: WebSocket?, serverCloseFrame: WebSocketFrame?, clientCloseFrame: WebSocketFrame?, closedByServer: Boolean) {
                     super.onDisconnected(websocket, serverCloseFrame, clientCloseFrame, closedByServer)
                     Log.d("WebSocket", "Disconnected.")
-                    counterFFZ = 1
-                    reconnect()
+                    //counterFFZ = 1
+                    //reconnect()
                 }
             })
         }
@@ -1979,7 +2052,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
 
     private fun reconnect() {
         wsAttempt++
-        if (wsAttempt > 5) {
+        if (wsAttempt > 9) {
             Log.d("WebSocket", "Exceeded connection attempts, abort.")
             return
         }
@@ -1988,7 +2061,7 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
         timer.schedule(delay) {
             connectWebSocket()
         }
-        Log.d("WebSocket", "Exceeded connection attempts, abort.")
+        Log.d("WebSocket", "Connection failed, try to reconnect")
     }
 
     private fun getDisplayName(webSocket: WebSocket, channels: JSONArray?) {
@@ -1997,12 +2070,13 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
                 val tmp = channels.get(i).toString()
                 awaitAnswers.put(counterFFZ, tmp)
                 webSocket.sendText(counterFFZ++.toString() + " get_display_name \"$tmp\"")
+                Log.d("test", "test")
             }
         }
     }
 
     private fun sendHelloMessage(webSocket: WebSocket) {
-        webSocket.sendText(counterFFZ++.toString() + " " + "hello [\"strimbagz_1.3.0\",false]")
+        webSocket.sendText(counterFFZ++.toString() + " " + "hello [\"strimbagz_${BuildConfig.VERSION_NAME}\",false]")
         webSocket.sendText(counterFFZ++.toString() + " " + "setuser \"${login}\"")
         webSocket.sendText(counterFFZ++.toString() + " " + "ready 0")
     }
@@ -2025,36 +2099,67 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
         val data = arr.getJSONObject(1)
 
         if (data == null) {
-            btn_srl.visibility = GONE
+            runOnUiThread {
+                button_srl.visibility = GONE
+            }
             return
         }
 
         val entrants: JSONObject? = data.getJSONObject("entrants")
+        val tmpState = data.getString("state")
+        Log.d("handelSRL", "state: " + tmpState)
+        when (tmpState) {
+            "open" -> raceState = "Open"
+            "progressing" -> raceState = "Progressing"
+            "done" -> raceState = "Done"
+            else -> Log.d("FFZ srl_race state", "Unknown")
+        }
         val keys = entrants?.keys() ?: return
         val jsonAdapter = SRLRaceEntrant.jsonAdapter(Moshi.Builder().build())
-        raceEntrants?.clear()
+        raceEntrants.clear()
         while (keys.hasNext()) {
             val key = keys.next()
             val tmp: Any? = entrants?.get(key)
             if (tmp != null && tmp is JSONObject) {
-                raceEntrants?.add(jsonAdapter.fromJson(tmp.toString()))
-                //Log.d("srl entrant", "Channel: " + getStringFromJSONObject("channel", tmp) + " DisplayName: " + getStringFromJSONObject("display_name", tmp) + " State: " + getStringFromJSONObject("state", tmp))
+                var tmpEntrant = jsonAdapter.fromJson(tmp.toString())
+                if (tmpEntrant.state() == "forfeit" || tmpEntrant.state() == "dq") {
+                    tmpEntrant = SRLRaceEntrant.recreateWithModifiedPlace(tmpEntrant, 9999)
+                } else if (tmpEntrant.place() == 0L) {
+                    tmpEntrant = SRLRaceEntrant.recreateWithModifiedPlace(tmpEntrant, 9998)
+                }
+                raceEntrants.add(tmpEntrant)
             }
         }
-        Log.d("srl entrants", raceEntrants.toString())
 
-        btn_srl.visibility = VISIBLE
-        btn_srl.setOnClickListener {
-
+        raceEntrants.sortBy { it.place() }
+        raceGame = data.getString("game")
+        raceGoal = data.getString("goal")
+        try {
+            raceStartTime = data.getLong("time")
+        } catch (e: JSONException) {
+            raceStartTime = 0
         }
-
-        val state = data.get("state")
-        when (state) {
-            "open" -> Log.d("FFZ srl_race state", "Open")
-            "progressing" -> Log.d("FFZ srl_race state", "Progressing")
-            "done" -> Log.d("FFZ srl_race state", "Done")
-            else -> Log.d("FFZ srl_race state", "Unknown")
+        runOnUiThread {
+            button_srl.visibility = VISIBLE
         }
+        Log.d("srl race", "button enabled, onclick listner too")
+        Logger.d(raceEntrants)
+    }
+
+    private fun showRaceEntrantsDialog() {
+        val raceFragment = SRLRaceDialog.newInstance(raceGame, raceGoal, raceStartTime,
+                raceState, raceEntrants)
+        raceFragment.show(supportFragmentManager, "dialog_srl")
+    }
+
+    private fun showScheduleDialog(runs: List<Run>) {
+        val scheduleFragment = ScheduleDialog.newInstance("Awesome Games Done Quick 2017",
+                "Sunday, January 8th - Sunday, January 15th", runs)
+        scheduleFragment.show(supportFragmentManager, "dialog_schedule")
+    }
+
+    private fun handleEventSchedule(obj: String) {
+        val arr = JSONArray(obj.substring(obj.indexOf("["))).getJSONArray(2)
     }
 
     private fun getStringFromJSONObject(query: String, json: JSONObject): String? {
@@ -2209,6 +2314,24 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
         })
     }
 
+    fun getChannel(ch: String) {
+        TwitchKraken.getService().getChannel(ch).enqueue(object : Callback<Channel> {
+            override fun onResponse(call: Call<Channel>, response: Response<Channel>) {
+                if (response.code() == 200) {
+                    channel = response.body()
+                    if (channel.partner()) {
+                        checkProduct()
+                    }
+                    Log.d("getChannel", "Got channel, update information")
+                }
+            }
+
+            override fun onFailure(call: Call<Channel>, t: Throwable) {
+
+            }
+        })
+    }
+
     private fun setFollowStatus(ch: String, displayName: String?, follows: Boolean, replace: Boolean) {
         if (follows) {
             if (channel.name() == ch) {
@@ -2232,10 +2355,12 @@ class PlayerActivity : AppCompatActivity(), SurfaceHolder.Callback, Player.Liste
     }
 
     val srlJson = "[[\"tob3000\",\"sva16162\",\"makko9143\",\"spamminn\",\"fig02\",\"alaris_villain\",\"psymarth\",\"moosecrap\",\"flanthis\",\"phoenixfeather1\",\"cma2819\",\"mikekatz45\",\"sniping117\",\"exodus122\",\"mrjabujabu\"],{\"entrants\":{\"alaris_villain\":{\"channel\":\"alaris_villain\",\"comment\":\"row3\",\"display_name\":\"alaris_villain\",\"place\":10,\"state\":\"done\",\"time\":5388},\"cma\":{\"channel\":\"cma2819\",\"comment\":\"row3\",\"display_name\":\"Cma\",\"place\":8,\"state\":\"done\",\"time\":5064},\"exodus\":{\"channel\":\"exodus122\",\"comment\":\"col 2\",\"display_name\":\"Exodus\",\"place\":2,\"state\":\"done\",\"time\":4611},\"fig02\":{\"channel\":\"fig02\",\"display_name\":\"fig02\",\"place\":12,\"state\":\"done\",\"time\":6805},\"flanthis\":{\"channel\":\"flanthis\",\"comment\":\"bltr omg this bingo was trash\",\"display_name\":\"flanthis\",\"place\":11,\"state\":\"done\",\"time\":5685},\"makko\":{\"channel\":\"makko9143\",\"comment\":\"col1 blame blank b\",\"display_name\":\"makko\",\"place\":7,\"state\":\"done\",\"time\":5037},\"marthur\":{\"comment\":\"row2 i dont know how to get to spirit so i just quit :P\",\"display_name\":\"marthur\",\"state\":\"forfeit\"},\"mikekatz45\":{\"channel\":\"mikekatz45\",\"comment\":\"col2\",\"display_name\":\"MikeKatz45\",\"place\":1,\"state\":\"done\",\"time\":4598},\"moosecrap\":{\"channel\":\"moosecrap\",\"comment\":\"c4 routing mistakes\",\"display_name\":\"moosecrap\",\"place\":13,\"state\":\"done\",\"time\":8626},\"mrjabujabu\":{\"channel\":\"mrjabujabu\",\"display_name\":\"Mrjabujabu\",\"place\":14,\"state\":\"done\",\"time\":8741},\"niamek\":{\"comment\":\"MRJABUJABU I will redeem myself eventually. Prepare yourself!\",\"display_name\":\"niamek\",\"state\":\"forfeit\"},\"phoenixfeather\":{\"channel\":\"phoenixfeather1\",\"comment\":\"row 4\",\"display_name\":\"PhoenixFeather\",\"place\":4,\"state\":\"done\",\"time\":4834},\"psymarth\":{\"channel\":\"psymarth\",\"comment\":\"row 4; mostly child\",\"display_name\":\"PsyMarth\",\"place\":5,\"state\":\"done\",\"time\":4959},\"sniping117\":{\"channel\":\"sniping117\",\"comment\":\"tl-br, so many hearts but mine is broken\",\"display_name\":\"SNIPING117\",\"place\":9,\"state\":\"done\",\"time\":5357},\"spamminn\":{\"channel\":\"spamminn\",\"display_name\":\"spamminn\",\"place\":15,\"state\":\"done\",\"time\":9263},\"sva\":{\"channel\":\"sva16162\",\"comment\":\"col 1 no hover boots for beat deku and water, that was scary\",\"display_name\":\"sva\",\"place\":3,\"state\":\"done\",\"time\":4743},\"tob3000\":{\"channel\":\"tob3000\",\"comment\":\"row3, bad\",\"display_name\":\"tob3000\",\"place\":6,\"state\":\"done\",\"time\":5034}},\"filename\":\"true\",\"game\":\"The Legend of Zelda: Ocarina of Time\",\"goal\":\"http://www.speedrunslive.com/tools/oot-bingo?mode=normal\\u0026amp;seed=455884\",\"id\":\"nid68\",\"state\":\"done\",\"time\":1.475977149e+09}]"
+    val srlJsonOpen = "[[\"dutchj\",\"firedragon764\"],{\"entrants\":{\"dutchj\":{\"channel\":\"dutchj\",\"display_name\":\"Dutchj\",\"state\":\"entered\"},\"firedragon764\":{\"channel\":\"firedragon764\",\"display_name\":\"firedragon764\",\"state\":\"entered\"}},\"game\":\"Super Mario Sunshine\",\"goal\":\"120 Shines\",\"id\":\"lnray\",\"state\":\"open\"}]"
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putParcelable("channel", channel)
+        outState.putString("chatRoom", chatRoom)
         outState.putBoolean("chatOnly", chatOnly)
         outState.putBoolean("VoD", VoD)
     }

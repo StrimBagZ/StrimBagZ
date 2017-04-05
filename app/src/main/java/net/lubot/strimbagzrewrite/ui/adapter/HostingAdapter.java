@@ -18,13 +18,14 @@
  */
 package net.lubot.strimbagzrewrite.ui.adapter;
 
-import android.content.Intent;
-import android.net.Uri;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,26 +34,16 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.signature.StringSignature;
 
-import net.lubot.strimbagzrewrite.util.Utils;
-import net.lubot.strimbagzrewrite.data.model.Twitch.AccessToken;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
+import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
+import net.lubot.strimbagzrewrite.util.Utils;
 import net.lubot.strimbagzrewrite.data.model.Twitch.FollowedHosting;
-import net.lubot.strimbagzrewrite.data.TwitchAPI;
 import net.lubot.strimbagzrewrite.R;
-import net.lubot.strimbagzrewrite.ui.activity.PlayerActivity;
-
-import org.apache.commons.lang3.StringUtils;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class HostingAdapter extends RecyclerView.Adapter<HostingAdapter.ViewHolder> {
 
@@ -60,6 +51,7 @@ public class HostingAdapter extends RecyclerView.Adapter<HostingAdapter.ViewHold
     private List<FollowedHosting.FollowedHosts> data;
     private boolean isTablet;
     private int position;
+    private String clickedHostingItem = "";
 
     public HostingAdapter(Fragment context) {
         this.fragment = context;
@@ -123,12 +115,14 @@ public class HostingAdapter extends RecyclerView.Adapter<HostingAdapter.ViewHold
         if (!isTablet) {
             Glide.with(fragment)
                     .load(host.target().preview().medium())
+                    .placeholder(R.drawable.ic_channel)
                     .diskCacheStrategy(DiskCacheStrategy.RESULT)
                     .centerCrop()
                     .into(holder.preview);
         } else {
             Glide.with(fragment)
                     .load(host.target().preview().medium())
+                    .placeholder(R.drawable.ic_channel)
                     .diskCacheStrategy(DiskCacheStrategy.RESULT)
                     .centerCrop()
                     .into(holder.preview);
@@ -150,6 +144,14 @@ public class HostingAdapter extends RecyclerView.Adapter<HostingAdapter.ViewHold
 
     public int getPosition() {
         return position;
+    }
+
+    public Channel getChannel() {
+        return data.get(position).target().channel();
+    }
+
+    public String getClickedHostingItem() {
+        return clickedHostingItem;
     }
 
     @Override
@@ -176,29 +178,72 @@ public class HostingAdapter extends RecyclerView.Adapter<HostingAdapter.ViewHold
 
         @Override
         public void onClick(View v) {
-            Utils.startPlayerActivity(fragment.getContext(), data.get(getAdapterPosition()).target().channel());
+            position = getAdapterPosition();
+            FollowedHosting.FollowedHosts host = data.get(getAdapterPosition());
+            if (host.target().channel().name().equals("gamesdonequick")) {
+                if (fragment.getActivity() instanceof MainActivity) {
+                    ((MainActivity) fragment.getActivity()).showMarathonFragment();
+                    return;
+                }
+            }
+            /*
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                v.showContextMenu(0f, 0f);
+            } else {
+                v.showContextMenu();
+            }
+            */
+            v.showContextMenu();
+            //Utils.startPlayerActivity(fragment.getContext(), host.target().channel());
         }
 
         @Override
         public void onCreateContextMenu(ContextMenu menu, View view,
                                         ContextMenu.ContextMenuInfo menuInfo) {
-            FollowedHosting.FollowedHosts host = data.get(getAdapterPosition());
+            position = getAdapterPosition();
+            final FollowedHosting.FollowedHosts host = data.get(getAdapterPosition());
             MenuInflater menuInflater = new MenuInflater(fragment.getContext());
+            menu.add(R.id.ctx_hosting, Menu.NONE, Menu.NONE, "Open Stream");
             if(host.hostedBy() != null && !host.hostedBy().isEmpty()) {
-                menu.setHeaderTitle("Hosted by");
+                menu.setHeaderTitle(checkName(host.target().channel().displayName(),
+                        host.target().channel().name()) + " is hosted by");
                 List<FollowedHosting.FollowedHosts> hostedBy = host.hostedBy();
-                for (FollowedHosting.FollowedHosts h: hostedBy) {
+                for (int i = 0, hostedBySize = hostedBy.size(); i < hostedBySize; i++) {
+                    FollowedHosting.FollowedHosts h = hostedBy.get(i);
                     menu.add(h.display_name() != null ?
-                            checkName(h.display_name(), h.name()) : h.name());
+                            checkName(h.display_name(), h.name()) : h.name())
+                            .setEnabled(false).setCheckable(false);
                 }
-                SubMenu options = menu.addSubMenu(fragment.getContext()
-                        .getResources().getString(R.string.ctx_stream_options));
-                menuInflater.inflate(R.menu.ctx_stream_actions, options);
+                SubMenu hostedChat = menu.addSubMenu(R.string.ctx_stream_specific_chat);
+                hostedChat.setHeaderTitle("Choose Chat:");
+                for (int i = 0, hostedBySize = hostedBy.size(); i < hostedBySize; i++) {
+                    final FollowedHosting.FollowedHosts h = hostedBy.get(i);
+                    hostedChat.add(429691, Menu.NONE, Menu.NONE, checkName(h.display_name(), h.name()))
+                            .setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                        @Override
+                        public boolean onMenuItemClick(MenuItem menuItem) {
+                            clickedHostingItem = h.name();
+                            return false;
+                        }
+                    });
+                }
             } else {
-                menu.setHeaderTitle(fragment.getContext()
-                        .getResources().getString(R.string.ctx_stream_options));
-                menuInflater.inflate(R.menu.ctx_stream_actions, menu);
+                menu.setHeaderTitle(checkName(host.target().channel().displayName(),
+                        host.target().channel().name()));
+                menu.add(429691, Menu.NONE, Menu.NONE, "Open Stream with " + host.display_name() + "'s chat")
+                        .setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem) {
+                        Log.d("HostingAdapter", "Clicked Hosting channel item");
+                        clickedHostingItem = host.name();
+                        return false;
+                    }
+                });
+                //menuInflater.inflate(R.menu.ctx_stream_actions, menu);
             }
+            SubMenu options = menu.addSubMenu(R.string.ctx_stream_options);
+            options.setHeaderTitle(host.target().channel().displayName());
+            menuInflater.inflate(R.menu.ctx_hosting_actions, options);
         }
 
         @Override

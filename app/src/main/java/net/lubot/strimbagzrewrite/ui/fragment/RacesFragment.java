@@ -104,22 +104,47 @@ public class RacesFragment extends Fragment {
         SpeedRunsLive.getService().getRaces().enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                try {
-                    ArrayList<Races.Race> races = prepareData(response.body().string());
-                    if (races != null && !races.isEmpty()) {
-                        adapter.clear();
-                        adapter.addAll(races);
-                    } else {
-                        Log.d(TAG, "empty race list");
-                        emptyView = new EmptyRecyclerViewAdapter(getContext(), R.string.races_empty);
-                        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-                        recyclerView.setAdapter(emptyView);
+                if (response.code() == 200) {
+                    try {
+                        String data = response.body().string();
+                        if (response.body() != null && data != null) {
+                            ArrayList<Races.Race> races = prepareData(data);
+                            if (races != null && !races.isEmpty()) {
+                                adapter.clear();
+                                adapter.addAll(races);
+                                recyclerView.setAdapter(adapter);
+                            } else {
+                                Log.d(TAG, "empty race list");
+                                View.OnClickListener refresh = new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        forceRefreshAnimation();
+                                        getData();
+                                    }
+                                };
+                                emptyView = new EmptyRecyclerViewAdapter(getContext(), R.string.races_empty, R.string.refresh, refresh);
+                                recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+                                recyclerView.setAdapter(emptyView);
+                            }
+                            if (swipeContainer.isRefreshing()) {
+                                swipeContainer.setRefreshing(false);
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                    if (swipeContainer.isRefreshing()) {
-                        swipeContainer.setRefreshing(false);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
+                } else {
+                    View.OnClickListener invalid = new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            forceRefreshAnimation();
+                            getData();
+                        }
+                    };
+                    emptyView = new EmptyRecyclerViewAdapter(getContext(),
+                            R.string.races_invalid_data, R.string.retry_call, invalid);
+                    recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+                    recyclerView.setAdapter(emptyView);
                 }
             }
 
@@ -192,6 +217,15 @@ public class RacesFragment extends Fragment {
             e.printStackTrace();
         }
         return races;
+    }
+
+    private void forceRefreshAnimation() {
+        swipeContainer.post(new Runnable() {
+            @Override
+            public void run() {
+                swipeContainer.setRefreshing(true);
+            }
+        });
     }
 
     @Override

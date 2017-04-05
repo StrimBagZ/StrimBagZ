@@ -44,10 +44,14 @@ public abstract class Channel implements Parcelable {
     @Nullable
     @Json(name = "profile_banner")
     public abstract String profileBanner();
+    @Nullable
+    @Json(name = "video_banner")
+    public abstract String videoBanner();
     public abstract boolean partner();
+    public abstract long followers();
 
     public static Channel createEmpty() {
-        return new AutoValue_Channel(null, "", 1, "", null, null, null, null, false);
+        return new AutoValue_Channel(null, "", 1, "", null, null, null, null, null, false, 0);
     }
 
     public static JsonAdapter<Channel> jsonAdapter(Moshi moshi) {

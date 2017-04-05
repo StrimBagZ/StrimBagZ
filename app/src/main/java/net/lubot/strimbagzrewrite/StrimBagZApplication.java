@@ -20,9 +20,11 @@ package net.lubot.strimbagzrewrite;
 
 import android.app.Application;
 import android.content.Context;
-import android.content.pm.PackageManager;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.webkit.WebView;
+
+import org.polaric.colorful.Colorful;
 
 
 public class StrimBagZApplication extends Application {
@@ -44,8 +46,17 @@ public class StrimBagZApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        boolean debug = getSharedPreferences(Constants.SETTINGS, 0).getBoolean("webkitDebug", false);
-        if (BuildConfig.DEBUG || debug && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        SharedPreferences pref = getSharedPreferences(Constants.SETTINGS, 0);
+        boolean debug = pref.getBoolean("webkitDebug", false);
+        boolean darkMode = pref.getBoolean(Constants.SETTING_DARK_THEME, false);
+        Colorful.defaults()
+                .primaryColor(Colorful.ThemeColor.BLUE)
+                .accentColor(Colorful.ThemeColor.CYAN)
+                .translucent(true)
+                .dark(darkMode);
+        Colorful.init(this);
+        if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+                || debug && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WebView.setWebContentsDebuggingEnabled(true);
         }
 

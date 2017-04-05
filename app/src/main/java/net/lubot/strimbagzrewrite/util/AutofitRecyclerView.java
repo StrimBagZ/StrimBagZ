@@ -47,4 +47,8 @@ public class AutofitRecyclerView extends RecyclerView {
             manager.setSpanCount(spanCount);
         }
     }
+
+    public GridLayoutManager getManager() {
+        return manager;
+    }
 }

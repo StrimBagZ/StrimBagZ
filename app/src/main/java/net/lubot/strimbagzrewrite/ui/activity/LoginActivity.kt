@@ -19,27 +19,30 @@
 package net.lubot.strimbagzrewrite.ui.activity
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
+import android.view.WindowManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.orhanobut.logger.Logger
 import net.lubot.strimbagzrewrite.Constants
 import net.lubot.strimbagzrewrite.R
 import net.lubot.strimbagzrewrite.util.Utils
+import org.polaric.colorful.CActivity
 
-class LoginActivity : AppCompatActivity() {
+class LoginActivity : CActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
         val url = intent.getStringExtra("url")
         setContentView(R.layout.activity_login)
-        WebView.setWebContentsDebuggingEnabled(true)
 
         val toolbar = findViewById(R.id.toolbar) as Toolbar
         setSupportActionBar(toolbar)
@@ -56,21 +59,18 @@ class LoginActivity : AppCompatActivity() {
         webView.settings.databaseEnabled = true
 
         webView.setWebViewClient(object : WebViewClient() {
-
-            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+            override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                super.onPageStarted(view, url, favicon)
                 if (url.contains("http://localhost/")) {
                     val token = url.substring(url.indexOf("=") + 1, url.indexOf("&"))
                     Logger.i("Token %s", token)
-                    val settings = getSharedPreferences(Constants.SETTINGS, MODE_PRIVATE)
-                    val editor = settings.edit()
-                    editor.putString("oauth_token", token)
-                    editor.apply()
+                    getSharedPreferences(Constants.SETTINGS, MODE_PRIVATE)
+                            .edit()
+                            .putString("oauth_token", token)
+                            .apply()
                     Utils.getTwitchUser(this@LoginActivity)
-                    return true
                 }
-                return false
             }
-
         })
         webView.loadUrl(url)
     }

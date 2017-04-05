@@ -21,22 +21,18 @@ package net.lubot.strimbagzrewrite.ui.fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.TextView;
-
 
 import net.lubot.strimbagzrewrite.Constants;
-import net.lubot.strimbagzrewrite.StrimBagZApplication;
 import net.lubot.strimbagzrewrite.data.model.SpeedRunsLive.Streams;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
 import net.lubot.strimbagzrewrite.data.model.Twitch.LiveStreams;
@@ -46,15 +42,15 @@ import net.lubot.strimbagzrewrite.data.TwitchKraken;
 import net.lubot.strimbagzrewrite.R;
 import net.lubot.strimbagzrewrite.ui.activity.LoginActivity;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
-import net.lubot.strimbagzrewrite.ui.activity.PlayerActivity;
 import net.lubot.strimbagzrewrite.ui.adapter.EmptyRecyclerViewAdapter;
 import net.lubot.strimbagzrewrite.ui.adapter.StreamsAdapter;
+import net.lubot.strimbagzrewrite.util.AutofitRecyclerView;
 import net.lubot.strimbagzrewrite.util.MarginDecoration;
-import net.lubot.strimbagzrewrite.util.Utils;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -66,24 +62,64 @@ public class LiveStreamsFragment extends Fragment {
     private RecyclerView recyclerView;
     private StreamsAdapter adapter;
     private EmptyRecyclerViewAdapter emptyView;
-    private RecyclerView.LayoutManager layoutManager;
+    private Parcelable listState;
+    private GridLayoutManager internalManager;
+    private LinearLayoutManager layoutManager;
 
     private Context context;
+    private String title;
     private String game;
+    private String community;
+    private boolean searchMode;
+    private String searchQuery;
     private int offset;
     private String token;
     private boolean showSRLStreams;
+    private boolean showCommunityStreams;
 
     private boolean isTablet;
     private MarginDecoration offsetDecoration;
 
     private boolean isActive;
+    private final int UPDATE_CYCLE = 120;
+
+    public static final int PAGE_SIZE = 25;
+    private boolean isLoading = false;
+    private boolean isLastPage = false;
+    private RecyclerView.OnScrollListener onScrollListener = new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+            if (dy > 0) {
+                int visibleItemCount;
+                int totalItemCount;
+                int firstVisibleItemPosition;
+
+                if (isTablet) {
+                    visibleItemCount = internalManager.getChildCount();
+                    totalItemCount = internalManager.getItemCount();
+                    firstVisibleItemPosition = internalManager.findFirstVisibleItemPosition();
+                } else {
+                    visibleItemCount = layoutManager.getChildCount();
+                    totalItemCount = layoutManager.getItemCount();
+                    firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+                }
+
+                if (!isLoading && !isLastPage) {
+                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+                            && firstVisibleItemPosition >= 0
+                            && totalItemCount >= PAGE_SIZE) {
+                        // GET MORE
+                        if (game != null && !game.isEmpty()) {
+                            getSpecificStreams(game, null);
+                        }
+                    }
+                }
+            }
+        }
+    };
 
     private final String TAG = "LiveStreamsFragment";
-
-    public static LiveStreamsFragment newInstance() {
-        return new LiveStreamsFragment();
-    }
 
     @Override
     public void onAttach(Context context) {
@@ -104,14 +140,25 @@ public class LiveStreamsFragment extends Fragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        if (savedInstanceState != null) {
+            listState = savedInstanceState.getParcelable("recycler_state");
+        }
 
         if (getArguments() != null) {
+            if (getArguments().containsKey("search")) {
+                searchMode = true;
+            }
             if (getArguments().containsKey("game")) {
                 game = getArguments().getString("game");
                 offset = 0;
             }
             if (getArguments().containsKey("srl")) {
                 showSRLStreams = true;
+            }
+            if (getArguments().containsKey("community")) {
+                community = getArguments().getString("community");
+                title = getArguments().getString("title");
+                showCommunityStreams = true;
             }
         } else if (getActivity() instanceof MainActivity) {
             token = ((MainActivity) getActivity()).getToken();
@@ -126,12 +173,18 @@ public class LiveStreamsFragment extends Fragment {
             offsetDecoration = new MarginDecoration(context);
             recyclerView.setHasFixedSize(true);
             recyclerView.addItemDecoration(offsetDecoration);
+            if (recyclerView instanceof AutofitRecyclerView) {
+                Log.d("LiveStreams", "AutofitRecyclerView");
+                internalManager = ((AutofitRecyclerView) recyclerView).getManager();
+            }
         } else {
             recyclerView.setLayoutManager(layoutManager);
         }
-        adapter = new StreamsAdapter((MainActivity) getActivity(), LiveStreamsFragment.this);
-        recyclerView.setItemAnimator(new DefaultItemAnimator());
+        if (adapter == null) {
+            adapter = new StreamsAdapter((MainActivity) getActivity(), LiveStreamsFragment.this);
+        }
         recyclerView.setAdapter(adapter);
+        recyclerView.addOnScrollListener(onScrollListener);
     }
 
     @Override
@@ -139,87 +192,113 @@ public class LiveStreamsFragment extends Fragment {
         super.onResume();
         Log.d("LiveStream onResume", "resumed");
         isActive = true;
-        if (game != null && !game.isEmpty()) {
-            forceRefreshAnimation();
-            getSpecificStreams(game, null, 25);
+        if (listState != null && layoutManager != null) {
+            layoutManager.onRestoreInstanceState(listState);
+        }
+        if (title != null && !title.isEmpty()) {
+            ((MainActivity) getActivity()).setTitle(title);
+        }
+        long lastUpdate = adapter.getLastUpdated();
+        if (lastUpdate == 0 || adapter.getItemCount() == 0) {
+            updateData();
+            return;
+        }
+        long timeDiff = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - lastUpdate);
+        Log.d("timeDiff Streams", "timeDiff: " + timeDiff + " adapter: " + adapter.getLastUpdated());
+        if (timeDiff > UPDATE_CYCLE) {
+            Log.d("timeDiff Streams", "update streams");
+            updateData();
+        }
+    }
+
+    private void updateData() {
+        offset = 0;
+        isLastPage = false;
+        if (searchMode) {
             swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-                    @Override
-                    public void onRefresh() {
-                        getSpecificStreams(game, null, 25);
-                    }
-                });
+                @Override
+                public void onRefresh() {
+                    searchStreams(searchQuery);
+                }
+            });
+            return;
+        }
+
+        forceRefreshAnimation();
+        if (game != null && !game.isEmpty()) {
+            getSpecificStreams(game, null);
+            swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+                @Override
+                public void onRefresh() {
+                    getSpecificStreams(game, null);
+                }
+            });
             return;
         }
 
         if (showSRLStreams) {
-            forceRefreshAnimation();
             getSRLStreams();
             swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-                    @Override
-                    public void onRefresh() {
-                        getSRLStreams();
-                    }
-                });
+                @Override
+                public void onRefresh() {
+                    getSRLStreams();
+                }
+            });
+            return;
+        }
+
+        if (showCommunityStreams) {
+            getCommunityStreams();
+            swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+                @Override
+                public void onRefresh() {
+                    getCommunityStreams();
+                }
+            });
             return;
         }
 
         if (token != null && !token.isEmpty() && !token.equals(Constants.NO_TOKEN)) {
-            forceRefreshAnimation();
             getData();
             swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-                    @Override
-                    public void onRefresh() {
-                        getData();
-                    }
-                });
+                @Override
+                public void onRefresh() {
+                    getData();
+                }
+            });
         } else {
             View.OnClickListener listener = new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        Intent Intent = new Intent(getActivity(), LoginActivity.class);
-                        Intent.putExtra("url", Constants.URL_TWITCH_AUTHENTICATION);
-                        startActivityForResult(Intent, 1);
-                    }
-                };
+                @Override
+                public void onClick(View view) {
+                    Intent Intent = new Intent(getActivity(), LoginActivity.class);
+                    Intent.putExtra("url", Constants.URL_TWITCH_AUTHENTICATION);
+                    startActivityForResult(Intent, 1);
+                }
+            };
             emptyView = new EmptyRecyclerViewAdapter(context, R.string.channel_name_empty,
                     R.string.preference_login, listener);
             recyclerView.setLayoutManager(layoutManager);
             recyclerView.setAdapter(emptyView);
             swipeContainer.setEnabled(false);
         }
+    }
 
+    private void loadMoreData() {
+        Log.d("loadMoreData", "isLastPage: " + isLastPage);
+        if (game != null && !game.isEmpty()) {
+            getSpecificStreams(game, null);
+            return;
+        }
+
+        if (showCommunityStreams) {
+            getCommunityStreams();
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
         isActive = false;
-    }
-
-    @Override
-    public boolean onContextItemSelected(MenuItem item) {
-        Channel channel = adapter.getSelectedChannel();
-        switch(item.getItemId()){
-            case R.id.ctn_openStream_Mobile:
-                Utils.startPlayerActivity(context, channel, "mobile");
-                break;
-            case R.id.ctn_openStream_Low:
-                Utils.startPlayerActivity(context, channel, "low");
-                break;
-            case R.id.ctn_openStream_Medium:
-                Utils.startPlayerActivity(context, channel, "medium");
-                break;
-            case R.id.ctn_openStream_High:
-                Utils.startPlayerActivity(context, channel, "high");
-                break;
-            case R.id.ctn_openStream_Source:
-                Utils.startPlayerActivity(context, channel, "source");
-                break;
-            case R.id.ctn_openChatOnly:
-                Utils.startChatOnlyActivity(context, channel);
-                break;
-        }
-        return true;
     }
 
     @Override
@@ -232,6 +311,19 @@ public class LiveStreamsFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         Log.d("LiveStream oDetach", "detaching");
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        recyclerView.removeOnScrollListener(onScrollListener);
+        if (internalManager != null) {
+            internalManager = null;
+        }
+    }
+
+    public Channel getSelectedChannel() {
+        return adapter.getSelectedChannel();
     }
 
     private void getData() {
@@ -248,6 +340,7 @@ public class LiveStreamsFragment extends Fragment {
                                 List<Stream> streams = response.body().streams();
                                 if (!streams.isEmpty()) {
                                     adapter.addAll(streams);
+                                    adapter.setLastUpdated(System.currentTimeMillis());
                                     if (!isTablet) {
                                         recyclerView.setLayoutManager(layoutManager);
                                     }
@@ -304,15 +397,36 @@ public class LiveStreamsFragment extends Fragment {
                 });
     }
 
-    private void getSpecificStreams(String game, String channels, int limit) {
-        TwitchKraken.getService().getStreams(game, channels, 0, limit)
+    private void getSpecificStreams(String game, String channels) {
+        isLoading = true;
+        TwitchKraken.getService().getStreams(game, channels, offset, PAGE_SIZE)
                 .enqueue(new Callback<LiveStreams>() {
                     @Override
                     public void onResponse(Call<LiveStreams> call, Response<LiveStreams> response) {
+                        isLoading = false;
+                        if (!isActive) {
+                            return;
+                        }
                         if (response.code() == 200) {
+                            List<Stream> streams = response.body().streams();
+                            if (streams.isEmpty()) {
+                                isLastPage = true;
+                                return;
+                            }
+                            if (streams.size() >= PAGE_SIZE) {
+
+                            } else {
+                                isLastPage = true;
+                            }
                             if (adapter != null) {
-                                adapter.clear();
-                                adapter.addAll(response.body().streams());
+                                if (offset == 0) {
+                                    adapter.clear();
+                                    adapter.addAll(streams);
+                                } else {
+                                    adapter.addMore(streams);
+                                }
+                                adapter.setLastUpdated(System.currentTimeMillis());
+                                offset += PAGE_SIZE;
                             }
                         }
                         if (response.code() == 401) {
@@ -325,6 +439,7 @@ public class LiveStreamsFragment extends Fragment {
 
                     @Override
                     public void onFailure(Call<LiveStreams> call, Throwable t) {
+                        isLoading = false;
                         Log.d("onFailure", t.getMessage());
                         if (t.getMessage().contains("Unable to resolve host")) {
                             Log.d(TAG, "Network issues");
@@ -352,6 +467,27 @@ public class LiveStreamsFragment extends Fragment {
         SpeedRunsLive.getService().getStreams().enqueue(new Callback<Streams>() {
             @Override
             public void onResponse(Call<Streams> call, Response<Streams> response) {
+                if (!isActive) {
+                    return;
+                }
+                if (response.code() != 200) {
+                    View.OnClickListener listener = new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            forceRefreshAnimation();
+                            getSRLStreams();
+                        }
+                    };
+                    emptyView = new EmptyRecyclerViewAdapter(context,
+                            R.string.srl_streams_error,
+                            R.string.retry_call, listener);
+                    recyclerView.setLayoutManager(layoutManager);
+                    recyclerView.setAdapter(emptyView);
+                    if (swipeContainer.isRefreshing()) {
+                        swipeContainer.setRefreshing(false);
+                    }
+                    return;
+                }
                 List<Streams.StreamsChannels> channels = response.body().source().channels();
                 Collections.sort(channels, new Comparator<Streams.StreamsChannels>() {
                     @Override
@@ -372,12 +508,126 @@ public class LiveStreamsFragment extends Fragment {
                         }
                     }
                 }
-                getSpecificStreams(null, twitchNames, 50);
+                getSpecificStreams(null, twitchNames);
             }
 
             @Override
             public void onFailure(Call<Streams> call, Throwable t) {
                 Log.d("onFailure", "SRL " + t.getMessage());
+                if (t.getMessage().contains("Unable to resolve host")) {
+                    Log.d(TAG, "Network issues");
+                    View.OnClickListener listener = new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            forceRefreshAnimation();
+                            getSRLStreams();
+                        }
+                    };
+                    emptyView = new EmptyRecyclerViewAdapter(context,
+                            R.string.network_error,
+                            R.string.retry_call, listener);
+                    recyclerView.setLayoutManager(layoutManager);
+                    recyclerView.setAdapter(emptyView);
+                }
+                if (swipeContainer.isRefreshing()) {
+                    swipeContainer.setRefreshing(false);
+                }
+            }
+        });
+    }
+
+    private void getCommunityStreams() {
+        isLoading = true;
+        TwitchKraken.getService().getCommunityStreams(community, offset, PAGE_SIZE)
+                .enqueue(new Callback<LiveStreams>() {
+            @Override
+            public void onResponse(Call<LiveStreams> call, Response<LiveStreams> response) {
+                if (!isActive) {
+                    return;
+                }
+                if (response.code() == 200) {
+                    if (adapter != null) {
+                        List<Stream> streams = response.body().streams();
+                        if (streams.isEmpty()) {
+                            isLastPage = true;
+                            return;
+                        }
+                        if (streams.size() >= PAGE_SIZE) {
+
+                        } else {
+                            isLastPage = true;
+                        }
+                        if (offset == 0) {
+                            adapter.clear();
+                            adapter.addAll(streams);
+                        } else {
+                            adapter.addMore(streams);
+                        }
+                        adapter.setLastUpdated(System.currentTimeMillis());
+                        offset += PAGE_SIZE;
+                    }
+                }
+                if (swipeContainer.isRefreshing()) {
+                    swipeContainer.setRefreshing(false);
+                }
+                isLoading = false;
+            }
+
+            @Override
+            public void onFailure(Call<LiveStreams> call, Throwable t) {
+                Log.d("onFailure", "Community " + t.getMessage());
+                if (t.getMessage().contains("Unable to resolve host")) {
+                    Log.d(TAG, "Network issues");
+                    View.OnClickListener listener = new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            forceRefreshAnimation();
+                            getSRLStreams();
+                        }
+                    };
+                    emptyView = new EmptyRecyclerViewAdapter(context,
+                            R.string.network_error,
+                            R.string.retry_call, listener);
+                    recyclerView.setLayoutManager(layoutManager);
+                    recyclerView.setAdapter(emptyView);
+                }
+                if (swipeContainer.isRefreshing()) {
+                    swipeContainer.setRefreshing(false);
+                }
+            }
+        });
+    }
+
+    public void setSearchQuery(String query) {
+        this.searchQuery = query;
+    }
+
+    public void searchStreams() {
+        searchStreams(searchQuery);
+    }
+
+    private void searchStreams(String query) {
+        TwitchKraken.getService().searchStreams(query).enqueue(new Callback<LiveStreams>() {
+            @Override
+            public void onResponse(Call<LiveStreams> call, Response<LiveStreams> response) {
+                if (response.code() == 200) {
+                    if (adapter != null) {
+                        adapter.clear();
+                        adapter.addAll(response.body().streams());
+                        adapter.setLastUpdated(System.currentTimeMillis());
+                    }
+                }
+                if (response.code() == 401) {
+                    recyclerView.setVisibility(View.GONE);
+                }
+                if (swipeContainer.isRefreshing()) {
+                    swipeContainer.setRefreshing(false);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<LiveStreams> call, Throwable t) {
+                Log.d("onFailure", t.getMessage());
                 if (t.getMessage().contains("Unable to resolve host")) {
                     Log.d(TAG, "Network issues");
                     View.OnClickListener listener = new View.OnClickListener() {
@@ -407,6 +657,13 @@ public class LiveStreamsFragment extends Fragment {
                 swipeContainer.setRefreshing(true);
             }
         });
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        listState = layoutManager.onSaveInstanceState();
+        outState.putParcelable("recycler_state", listState);
     }
 
 }

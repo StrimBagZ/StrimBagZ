@@ -27,6 +27,8 @@ import android.view.LayoutInflater;
 import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -50,6 +52,8 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
     private Fragment fragment;
     private List<Stream> data;
     private int position;
+    private long lastUpdated;
+    private int lastPosition = -1;
 
     public StreamsAdapter(Activity activity) {
         this.activity = activity;
@@ -70,13 +74,29 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
     }
 
     public void clear() {
+        int size = data.size();
         this.data.clear();
-        notifyDataSetChanged();
+        lastPosition = -1;
+        notifyItemRangeRemoved(0, size);
     }
 
     public void addAll(List<Stream> data) {
         this.data.addAll(data);
-        notifyDataSetChanged();
+        notifyItemRangeInserted(0, data.size());
+    }
+
+    public void addMore(List<Stream> data) {
+        int pos = getItemCount();
+        this.data.addAll(data);
+        notifyItemRangeInserted(pos, data.size());
+    }
+
+    public long getLastUpdated() {
+        return lastUpdated;
+    }
+
+    public void setLastUpdated(long lastUpdated) {
+        this.lastUpdated = lastUpdated;
     }
 
     @Override
@@ -95,16 +115,19 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
         if (fragment != null) {
             Glide.with(fragment)
                     .load(stream.preview().medium())
+                    .placeholder(R.drawable.ic_channel)
                     .centerCrop()
                     .signature(new StringSignature(stream.channel().name() + stream.channel().updated_at()))
                     .into(holder.preview);
         } else {
             Glide.with(activity)
                     .load(stream.preview().medium())
+                    .placeholder(R.drawable.ic_channel)
                     .centerCrop()
                     .signature(new StringSignature(stream.channel().name() + stream.channel().updated_at()))
                     .into(holder.preview);
         }
+        setAnimation(holder.itemView, position);
     }
 
     private String checkName(String displayName, String name) {
@@ -124,9 +147,23 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
     }
 
     @Override
+    public void onViewDetachedFromWindow(ViewHolder holder) {
+        super.onViewDetachedFromWindow(holder);
+        holder.clearAnimation();
+    }
+
+    @Override
     public void onViewRecycled(ViewHolder holder) {
         super.onViewRecycled(holder);
         Glide.clear(holder.preview);
+    }
+
+    private void setAnimation(View view, int position) {
+        if (position > lastPosition) {
+            Animation animation = AnimationUtils.loadAnimation(activity, android.R.anim.slide_in_left);
+            view.startAnimation(animation);
+            lastPosition = position;
+        }
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder
@@ -148,10 +185,17 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
 
         @Override
         public void onClick(View v) {
-            startPlayerActivity(data.get(getAdapterPosition()).channel());
+            Channel channel = data.get(getAdapterPosition()).channel();
+            if (channel.name().equals("gamesdonequick")) {
+                if (activity instanceof MainActivity) {
+                    ((MainActivity) activity).showMarathonFragment();
+                }
+            } else {
+                startPlayerActivity(data.get(getAdapterPosition()).channel());
+            }
         }
 
-        private void startPlayerActivity(final Channel channel) {
+        private void startPlayerActivity(Channel channel) {
             Bundle bundle = new Bundle();
             bundle.putString(FirebaseAnalytics.Param.ITEM_ID, channel.name());
             bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, channel.id() + "");
@@ -172,6 +216,10 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
             menu.setHeaderTitle(activity.getResources().getString(R.string.ctx_stream_options));
             MenuInflater menuInflater = new MenuInflater(activity);
             menuInflater.inflate(R.menu.ctx_stream_actions, menu);
+        }
+
+        public void clearAnimation() {
+            itemView.clearAnimation();
         }
 
     }

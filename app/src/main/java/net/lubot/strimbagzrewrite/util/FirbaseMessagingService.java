@@ -62,6 +62,9 @@ public class FirbaseMessagingService extends FirebaseMessagingService {
                 case "stream":
                     addWatchButton(builder, data);
                     break;
+                case "marathon":
+                    addMarathonButton(builder);
+                    break;
                 default:
                     builder.setSmallIcon(R.drawable.ic_notification);
                     break;
@@ -80,5 +83,16 @@ public class FirbaseMessagingService extends FirebaseMessagingService {
         builder.setSmallIcon(R.drawable.ic_marathon_notification);
         builder.addAction(R.drawable.ic_channel,
                 getString(R.string.notification_watch), pendingStream);
+    }
+
+    private void addMarathonButton(NotificationCompat.Builder builder) {
+        Intent stream = new Intent(this, MainActivity.class);
+        stream.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        stream.putExtra("showMarathon", true);
+        PendingIntent pendingStream = PendingIntent
+                .getActivity(this, 42541, stream, PendingIntent.FLAG_ONE_SHOT);
+        builder.setSmallIcon(R.drawable.ic_marathon_notification);
+        //builder.addAction(R.drawable.ic_channel,
+        //        getString(R.string.notification_marathon_button), pendingStream);
     }
 }

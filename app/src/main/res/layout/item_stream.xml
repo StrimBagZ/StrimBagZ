@@ -6,10 +6,12 @@
     android:clickable="true"
     android:layout_marginBottom="8dp">
 
+
     <ImageView
         android:id="@+id/previewImage"
         android:layout_width="match_parent"
-
+        android:foregroundGravity="top"
+        android:background="?attr/colorPrimary"
         android:layout_height="200dp"
         android:layout_marginTop="8dp"
         android:layout_marginStart="8dp"

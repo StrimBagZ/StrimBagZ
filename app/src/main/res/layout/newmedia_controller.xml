@@ -66,13 +66,13 @@
         android:layout_alignParentStart="true">
 
         <ImageButton
-            android:id="@+id/btn_srl"
+            android:id="@+id/button_srl"
             android:layout_width="65dp"
             android:layout_height="match_parent"
             android:src="@drawable/ic_srlicon"
             android:scaleType="fitCenter"
             android:adjustViewBounds="true"
-            android:visibility="invisible"
+            android:visibility="gone"
             android:background="@android:color/transparent"
             android:paddingStart="10dp"
             android:paddingEnd="0dp"/>
@@ -88,6 +88,22 @@
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
             android:visibility="visible"/>
+
+        <Button
+            android:id="@+id/button_schedule"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:drawableLeft="@drawable/ic_schedule"
+            android:textColor="@android:color/primary_text_dark"
+            android:text=" Schedule"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true"
+            android:visibility="gone"
+            android:background="@android:color/transparent"
+            android:paddingStart="10dp"
+            android:paddingEnd="0dp"
+            android:layout_alignParentTop="true"
+            android:layout_toEndOf="@+id/button_srl" />
     </RelativeLayout>
 
 </RelativeLayout>

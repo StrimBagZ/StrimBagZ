@@ -7,7 +7,6 @@ import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
-import android.text.format.DateFormat;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
@@ -22,8 +21,6 @@ import net.lubot.strimbagzrewrite.ui.activity.LoginActivity;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 import net.lubot.strimbagzrewrite.ui.activity.PlayerActivity;
 import net.lubot.strimbagzrewrite.ui.activity.RaceActivity;
-
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -94,19 +91,28 @@ public class Utils {
         });
     }
 
+    public static void startPlayerActivity(Context context, Channel channel, boolean loadChannel) {
+        startPlayerActivity(context, channel, null, null, loadChannel);
+    }
+
     public static void startPlayerActivity(Context context, Channel channel) {
-        startPlayerActivity(context, channel, null);
+        startPlayerActivity(context, channel, null, null, false);
+    }
+
+    public static void startPlayerActivity(Context context, Channel channel, String chatRoom) {
+        startPlayerActivity(context, channel, null, chatRoom, false);
     }
 
     public static void startPlayerActivity(final Context context, final Channel channel,
-                                           final String quality) {
+                                           final String quality, final String chatRoom,
+                                           final boolean loadChannel) {
         TwitchAPI.getService().getChannelToken(channel.name()).enqueue(new Callback<AccessToken>() {
             @Override
             public void onResponse(Call<AccessToken> call, Response<AccessToken> response) {
                 if (response.isSuccessful()) {
                     AccessToken token = response.body();
                     String url = Constants.URL_USHER;
-                    url = StringUtils.replace(url, "{channel}", channel.name());
+                    url = url.replace("{channel}", channel.name());
                     Uri uri = Uri.parse(url)
                             .buildUpon()
                             .appendQueryParameter("allow_audio_only", "false")
@@ -125,6 +131,14 @@ public class Utils {
                     } else {
                         intent.putExtra("quality", quality);
                     }
+                    if (chatRoom != null) {
+                        intent.putExtra("chatRoom", chatRoom);
+                    } else {
+                        intent.putExtra("chatRoom", channel.name());
+                    }
+                    if (loadChannel) {
+                        intent.putExtra("loadChannel", true);
+                    }
                     context.startActivity(intent);
                 }
             }
@@ -139,6 +153,7 @@ public class Utils {
     public static void startChatOnlyActivity(Context context, Channel channel) {
         Intent intent = new Intent(context, PlayerActivity.class);
         intent.putExtra("chatOnly", true);
+        intent.putExtra("chatRoom", channel.name());
         intent.putExtra("channel", channel);
         context.startActivity(intent);
     }

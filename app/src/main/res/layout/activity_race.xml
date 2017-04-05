@@ -9,15 +9,13 @@
         android:id="@+id/appbar_container"
         android:layout_width="match_parent"
         android:layout_height="192dp"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-        android:background="@color/PrimaryDarkColor">
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
 
         <android.support.design.widget.CollapsingToolbarLayout
             android:id="@+id/collapsing_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:layout_scrollFlags="scroll|exitUntilCollapsed"
-            app:contentScrim="@color/PrimaryDarkColor"
             app:collapsedTitleTextAppearance="@style/Toolbar.TitleText"
             app:expandedTitleTextAppearance="@style/Toolbar.TitleText"
             app:expandedTitleMarginStart="8dp"

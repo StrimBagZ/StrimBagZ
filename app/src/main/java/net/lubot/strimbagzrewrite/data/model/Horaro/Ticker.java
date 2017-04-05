@@ -42,6 +42,8 @@ public abstract class Ticker {
 
     @AutoValue
     public static abstract class TickerSchedule {
+        public abstract String name();
+        public abstract String start();
         public abstract long start_t();
         public abstract String updated();
         public abstract List<String> columns();

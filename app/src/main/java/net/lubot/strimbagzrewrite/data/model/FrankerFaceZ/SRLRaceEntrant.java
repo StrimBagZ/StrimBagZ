@@ -18,6 +18,7 @@
  */
 package net.lubot.strimbagzrewrite.data.model.FrankerFaceZ;
 
+import android.os.Parcelable;
 import android.support.annotation.Nullable;
 
 import com.google.auto.value.AutoValue;
@@ -26,16 +27,22 @@ import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
 @AutoValue
-public abstract class SRLRaceEntrant {
+public abstract class SRLRaceEntrant implements Parcelable {
     @Nullable
     public abstract String channel();
     @Nullable
     public abstract String comment();
+    @Nullable
     @Json(name = "display_name")
     public abstract String displayName();
     public abstract long place();
     public abstract String state();
     public abstract long time();
+
+    public static SRLRaceEntrant recreateWithModifiedPlace(SRLRaceEntrant entrant, long place) {
+        return new AutoValue_SRLRaceEntrant(entrant.channel(), entrant.comment(),
+                entrant.displayName(), place, entrant.state(), entrant.time());
+    }
 
     public static JsonAdapter<SRLRaceEntrant> jsonAdapter(Moshi moshi) {
         return new AutoValue_SRLRaceEntrant.MoshiJsonAdapter(moshi);
