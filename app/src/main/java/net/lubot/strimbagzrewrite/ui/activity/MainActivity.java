@@ -44,6 +44,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextSwitcher;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
@@ -61,7 +62,6 @@ import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
 import net.lubot.strimbagzrewrite.data.model.Twitch.KrakenBase;
 import net.lubot.strimbagzrewrite.data.TwitchKraken;
 import net.lubot.strimbagzrewrite.R;
-import net.lubot.strimbagzrewrite.ui.fragment.ChatFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.CommunitiesFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.FollowedChannelsFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.FollowingFragment;
@@ -70,11 +70,10 @@ import net.lubot.strimbagzrewrite.ui.fragment.LiveStreamsFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.MarathonFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.SRLFragment;
 import net.lubot.strimbagzrewrite.ui.fragment.SettingsFragment;
+import net.lubot.strimbagzrewrite.util.TwitchOAuth;
 import net.lubot.strimbagzrewrite.util.Utils;
 
 import org.polaric.colorful.CActivity;
-
-import java.util.Set;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -126,11 +125,6 @@ public class MainActivity extends CActivity
             preferences.edit().putBoolean("marathon_notification", true).apply();
         }
 
-        if(!preferences.getBoolean("rewrite_dialog", false)) {
-            showRewriteDialog();
-            preferences.edit().putBoolean("rewrite_dialog", true).apply();
-        }
-
         //mCastContext = CastContext.getSharedInstance(this);
         //mCastContext.registerLifecycleCallbacksBeforeIceCreamSandwich(this, savedInstanceState);
 
@@ -146,9 +140,9 @@ public class MainActivity extends CActivity
         getDisplayName();
         initNavigation();
 
-        if (login != null && !login.equals(Constants.NO_USER)) {
+        if (userID != null && !userID.equals(Constants.NO_USER)) {
             // We know the userID, so we can directly get the channel information of the user
-            getChannel(login);
+            getChannel(userID);
         } else if (token != null && !token.equals(Constants.NO_TOKEN)) {
             // We have the OAuth token of the user, call the base and get the userID
             getBase();
@@ -185,6 +179,7 @@ public class MainActivity extends CActivity
             transaction.commit();
         }
 
+        testSpeedRunCom();
     }
 
     private void showWebViewDialog() {
@@ -201,24 +196,6 @@ public class MainActivity extends CActivity
                         intent.setData(Uri.parse("market://details?id=com.google.android.webview"));
                         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         startActivity(intent);
-                    }
-                })
-                .show();
-    }
-
-    private void showRewriteDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("StrimBagZ Reloaded")
-                .setMessage("It has been a long time since StrimBagZ received an update, today it's finally time.\n" +
-                        "StrimBagZ was rewritten from scratch, some features are not completely finished, but we're getting there, " +
-                        "most importantly the 'Received Data Invalid' error is fixed, which I'm sorry about that it took so long to get fixed.\n" +
-                        "I try to release updates more rapidly in the upcoming days to fix any other issues and to reimplement and introduce new features.\n\n" +
-                        "- Luigitus")
-                .setCancelable(false)
-                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-
                     }
                 })
                 .show();
@@ -389,6 +366,10 @@ public class MainActivity extends CActivity
                     .getCurrentCastSession();
         }
         */
+        if(getIntent() != null && getIntent().getAction() != null && getIntent().getAction().equals(Intent.ACTION_VIEW)) {
+            //String token = uri.getQueryParameter("access_token");
+            //String code = uri.getQueryParameter("code");
+        }
         super.onResume();
     }
 
@@ -427,7 +408,9 @@ public class MainActivity extends CActivity
 
     @Override
     protected void onNewIntent(Intent intent) {
-        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+        String action = intent.getAction();
+        Uri uri = intent.getData();
+        if (Intent.ACTION_SEARCH.equals(action)) {
             String query = intent.getStringExtra(SearchManager.QUERY);
             Fragment fragment = getSupportFragmentManager().findFragmentByTag("search");
             if (fragment == null) {
@@ -452,6 +435,18 @@ public class MainActivity extends CActivity
             notificationManager.cancel(1234);
             showMarathonFragment();
         }
+        if (action != null && action.equals(Intent.ACTION_VIEW) && uri != null) {
+            Log.d("handleTwitchAuth", "url: " + uri.toString());
+            if (uri.toString().startsWith(Constants.CALLBACK_URL)) {
+                String code = uri.getQueryParameter("code");
+                TwitchOAuth.getToken(this, code);
+            }
+        }
+    }
+
+    public void testSpeedRunCom() {
+        TextSwitcher test = null;
+
     }
 
     public void showMarathonFragment() {
@@ -478,6 +473,8 @@ public class MainActivity extends CActivity
                 if (task.isSuccessful()) {
                     firebaseRemoteConfig.activateFetched();
                 }
+                String tmp = firebaseRemoteConfig.getString(Constants.LEADERBOARDS_ENABLED);
+                preferences.edit().putString(Constants.LEADERBOARDS_ENABLED, tmp).apply();
                 updateNavigationMenu();
             }
         });
@@ -580,7 +577,7 @@ public class MainActivity extends CActivity
     }
 
     public void getChannel(String channel) {
-        TwitchKraken.getService().getChannel(channel).enqueue(new Callback<Channel>() {
+        TwitchKraken.getService().getChannel(channel, 5).enqueue(new Callback<Channel>() {
             @Override
             public void onResponse(Call<Channel> call, final Response<Channel> response) {
                 if (response.code() != 200) {
@@ -589,8 +586,7 @@ public class MainActivity extends CActivity
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Channel channel = response.body();
-
+                        final Channel channel = response.body();
                         if (channel.logo() != null) {
                             try {
                                 Glide.with(MainActivity.this)
@@ -611,10 +607,17 @@ public class MainActivity extends CActivity
                         }
                         if (channel.profileBanner() != null) {
                             try {
+                                ImageView header = (ImageView) navigationHeader.findViewById(R.id.headerBackground);
                                 Glide.with(MainActivity.this)
                                         .load(channel.profileBanner())
                                         .fitCenter()
-                                        .into((ImageView) navigationHeader.findViewById(R.id.headerBackground));
+                                        .into(header);
+                                header.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        Utils.startChatOnlyActivity(MainActivity.this, channel);
+                                    }
+                                });
                             } catch (IllegalArgumentException ignored) {}
                         }
                         TextView user = (TextView) navigationHeader.findViewById(R.id.username);
@@ -690,7 +693,7 @@ public class MainActivity extends CActivity
     }
 
     public void startStream(String channel) {
-        TwitchKraken.getService().getChannel(channel).enqueue(new Callback<Channel>() {
+        TwitchKraken.getService().getChannel(channel, 3).enqueue(new Callback<Channel>() {
             @Override
             public void onResponse(Call<Channel> call, Response<Channel> response) {
                 Utils.startPlayerActivity(MainActivity.this, response.body());
@@ -704,7 +707,7 @@ public class MainActivity extends CActivity
     }
 
     public void startStreamWithOtherChat(String channel, final String chatRoom) {
-        TwitchKraken.getService().getChannel(channel).enqueue(new Callback<Channel>() {
+        TwitchKraken.getService().getChannel(channel, 3).enqueue(new Callback<Channel>() {
             @Override
             public void onResponse(Call<Channel> call, Response<Channel> response) {
                 //Utils.startPlayerActivity(MainActivity.this, response.body(), chatRoom);

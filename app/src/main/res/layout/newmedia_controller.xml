@@ -17,21 +17,73 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         app:srcCompat="@drawable/ic_viewer_list"
+        android:textAlignment="viewStart"
+        android:textColor="@android:color/primary_text_dark"
         android:background="@android:color/transparent"
         android:contentDescription="Viewer List"
         android:paddingStart="10dp"
-        android:paddingEnd="0dp"/>
+        android:paddingEnd="4dp"/>
 
-    <ImageButton
-        android:id="@+id/btn_quality"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        app:srcCompat="@drawable/ic_settings"
-        android:background="@android:color/transparent"
-        android:contentDescription="Quality"
-        android:layout_marginStart="25dp"
-        android:layout_alignParentTop="true"
-        android:layout_toEndOf="@+id/btn_viewer_list" />
+        <TextSwitcher
+            android:id="@+id/controller_viewCount"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_toEndOf="@+id/btn_viewer_list">
+            <TextView
+                android:text="0"
+                android:textColor="@android:color/primary_text_dark"
+                android:paddingTop="14dp"
+                android:paddingRight="12dp"
+                android:textStyle="bold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+            <TextView
+                android:paddingTop="14dp"
+                android:paddingRight="12dp"
+                android:textStyle="bold"
+                android:textColor="@android:color/primary_text_dark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </TextSwitcher>
+
+        <ImageView
+            android:id="@+id/image_uptime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingRight="4dp"
+            app:srcCompat="@drawable/ic_schedule"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@+id/controller_viewCount" />
+
+        <TextSwitcher
+            android:id="@+id/controller_uptime"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:paddingRight="4dp"
+            android:layout_toEndOf="@+id/image_uptime">
+            <TextView
+                android:text="00:00"
+                android:textColor="@android:color/primary_text_dark"
+                android:paddingTop="14dp"
+                android:textStyle="bold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+            <TextView
+                android:paddingTop="14dp"
+                android:textStyle="bold"
+                android:textColor="@android:color/primary_text_dark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </TextSwitcher>
+
+        <TextView
+            android:id="@+id/controller_delay"
+            android:textColor="@android:color/primary_text_dark"
+            android:paddingTop="14dp"
+            android:textStyle="bold"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@+id/controller_uptime"/>
 
         <ImageButton
         android:id="@+id/btn_favorite"
@@ -51,7 +103,7 @@
         app:srcCompat="@drawable/ic_info"
         android:background="@android:color/transparent"
         android:contentDescription="Channel Description"
-        android:paddingRight="1dp"
+        android:paddingRight="4dp"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
         android:visibility="visible"/>
@@ -79,12 +131,22 @@
 
 
         <ImageButton
+            android:id="@+id/btn_quality"
+            android:layout_width="60dp"
+            android:layout_height="match_parent"
+            app:srcCompat="@drawable/ic_settings"
+            android:background="@android:color/transparent"
+            android:contentDescription="Quality"
+            android:layout_alignParentTop="true"
+            android:layout_toStartOf="@+id/btn_fullscreen" />
+
+        <ImageButton
             android:id="@+id/btn_fullscreen"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             app:srcCompat="@drawable/ic_fullscreen"
             android:background="@android:color/transparent"
-            android:paddingRight="1dp"
+            android:paddingRight="4dp"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
             android:visibility="visible"/>
@@ -104,6 +166,22 @@
             android:paddingEnd="0dp"
             android:layout_alignParentTop="true"
             android:layout_toEndOf="@+id/button_srl" />
+
+        <Button
+            android:id="@+id/button_srcom"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:drawableLeft="@drawable/ic_leaderboard"
+            android:textColor="@android:color/primary_text_dark"
+            android:text=" Leaderboards"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="true"
+            android:visibility="gone"
+            android:background="@android:color/transparent"
+            android:paddingStart="10dp"
+            android:paddingEnd="0dp"
+            android:layout_alignParentTop="true"
+            android:layout_toEndOf="@+id/button_schedule" />
     </RelativeLayout>
 
 </RelativeLayout>

@@ -18,17 +18,23 @@
  */
 package net.lubot.strimbagzrewrite.data.model.Twitch;
 
+import android.os.Parcelable;
+
 import com.google.auto.value.AutoValue;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
 @AutoValue
-public abstract class StreamPreview {
+public abstract class StreamPreview implements Parcelable {
     public abstract String small();
     public abstract String medium();
     public abstract String large();
 
     public static JsonAdapter<StreamPreview> jsonAdapter(Moshi moshi) {
         return new AutoValue_StreamPreview.MoshiJsonAdapter(moshi);
+    }
+
+    public static StreamPreview createEmpty() {
+        return new AutoValue_StreamPreview("", "", "");
     }
 }

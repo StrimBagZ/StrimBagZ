@@ -26,11 +26,15 @@ public class Constants {
             "+user_follows_edit" +
             "+user_subscriptions" +
             "+chat_login";
+    public static final String CALLBACK_URL = "strimbagz://lubot.net/strimbagz/redirect";
+    public static final String TOKEN_URL = "https://lubot.net/sbz/token";
+    public static final String REVOKE_URL = "https://lubot.net/sbz/revoke";
 
     // Keys
     public static final String NO_USER = "NO_USER";
     public static final String NO_TOKEN = "NO_TOKEN";
     public static final String OAUTH = "oauth_token";
+    public static final String REFRESH = "refresh_token";
     public static final String TWITCH_ID = "twitch_id";
     public static final String DISPLAY_NAME = "displayName";
     public static final String LOGIN = "login";
@@ -40,6 +44,7 @@ public class Constants {
     public static final String MARATHON_RUNNING = "marathon_running";
     public static final String MARATHON_NAME = "marathon_name";
     public static final String MARATHON_CHANNEL = "marathon_channel";
+    public static final String MARATHON_CHANNEL_ID = "marathon_channel_id";
 
     public static final String RECREATE_SETTINGS = "recreateSettings";
     public static final String SETTING_DARK_THEME = "setting_dark_theme";
@@ -47,6 +52,8 @@ public class Constants {
     public static final String SETTING_QUALITY = "setting_quality";
     public static final String SETTING_QUALITY_MOBILE = "setting_quality_mobile";
     public static final String SETTING_DEBUG_ADDRESS = "setting_debug_address";
+
+    public static final String LEADERBOARDS_ENABLED = "leaderboards_enabled_communities";
 
     public static final int NOTIFICATION_STREAM = 14812;
 
@@ -67,11 +74,13 @@ public class Constants {
     public static final String URL_TWITCH_LOGIN = "https://secure.twitch.tv/login";
     public static final String URL_TWITCH_AUTHENTICATION =
             "https://api.twitch.tv/kraken/oauth2/authorize" +
-                    "?response_type=token" +
+                    "?response_type=code" +
                     "&client_id=" + BuildConfig.CLIENT_ID +
-                    "&redirect_uri=http://localhost" +
-                    "&scope=" + LOGIN_SCOPES;
+                    "&redirect_uri=strimbagz://lubot.net/strimbagz/redirect" +
+                    "&scope=" + LOGIN_SCOPES +
+                    "&force_verify=true";
     private static final String URL_TMI_HOSTS = "https://tmi.twitch.tv/hosts?include_logins=1";
+    public static final String URL_TMI_CHATTERS = "https://tmi.twitch.tv/group/user/{channel}/chatters";
     public static final String URL_HOST = URL_TMI_HOSTS + "&host=";
     public static final String URL_HOST_TARGET = URL_TMI_HOSTS + "&target=";
     public static final String URL_USHER = "https://usher.ttvnw.net/api/channel/hls/{channel}.m3u8";

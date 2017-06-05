@@ -19,9 +19,9 @@
 package net.lubot.strimbagzrewrite.ui.fragment;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.preference.Preference;
@@ -33,12 +33,9 @@ import android.webkit.WebView;
 
 import net.lubot.strimbagzrewrite.Constants;
 import net.lubot.strimbagzrewrite.R;
-import net.lubot.strimbagzrewrite.ui.activity.LoginActivity;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 import net.lubot.strimbagzrewrite.util.Utils;
 
-import org.polaric.colorful.ColorPickerDialog;
-import org.polaric.colorful.ColorPickerPreference;
 import org.polaric.colorful.Colorful;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -125,9 +122,8 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
     }
 
     private void loginUser() {
-        Intent Intent = new Intent(activity, LoginActivity.class);
-        Intent.putExtra("url", Constants.URL_TWITCH_AUTHENTICATION);
-        startActivityForResult(Intent, 1);
+        Intent Intent = new Intent(android.content.Intent.ACTION_VIEW, Uri.parse(Constants.URL_TWITCH_AUTHENTICATION));
+        startActivity(Intent);
     }
 
     private void logoutUser() {

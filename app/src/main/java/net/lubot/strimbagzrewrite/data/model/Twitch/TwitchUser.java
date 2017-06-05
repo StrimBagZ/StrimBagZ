@@ -28,7 +28,7 @@ public abstract class TwitchUser {
     @Json(name = "display_name")
     public abstract String displayName();
     @Json(name = "_id")
-    public abstract long id();
+    public abstract String id();
     public abstract String name();
     public abstract String logo();
 

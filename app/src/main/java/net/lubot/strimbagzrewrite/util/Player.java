@@ -83,6 +83,8 @@ public class Player implements ExoPlayer.Listener, ChunkSampleSource.EventListen
          * {@link Player#onRenderersError} on the player, which may have been released.
          */
         void cancel();
+
+        List<String> getTrackNames();
     }
 
     /**
@@ -180,7 +182,7 @@ public class Player implements ExoPlayer.Listener, ChunkSampleSource.EventListen
     private static final int RENDERER_BUILDING_STATE_BUILDING = 2;
     private static final int RENDERER_BUILDING_STATE_BUILT = 3;
 
-    private final RendererBuilder rendererBuilder;
+    private final HlsRendererBuilder rendererBuilder;
     private final ExoPlayer player;
     private final PlayerControl playerControl;
     private final Handler mainHandler;
@@ -205,7 +207,7 @@ public class Player implements ExoPlayer.Listener, ChunkSampleSource.EventListen
     private InternalErrorListener internalErrorListener;
     private InfoListener infoListener;
 
-    public Player(RendererBuilder rendererBuilder) {
+    public Player(HlsRendererBuilder rendererBuilder) {
         this.rendererBuilder = rendererBuilder;
         player = ExoPlayer.Factory.newInstance(RENDERER_COUNT, 1000, 5000);
         player.addListener(this);
@@ -385,6 +387,14 @@ public class Player implements ExoPlayer.Listener, ChunkSampleSource.EventListen
             return STATE_PREPARING;
         }
         return playerState;
+    }
+
+    public List<String> getTracks() {
+        return rendererBuilder.getTrackNames();
+    }
+
+    public void resetTracks() {
+        rendererBuilder.resetTrackNames();
     }
 
     @Override

@@ -19,9 +19,12 @@
 package net.lubot.strimbagzrewrite.ui.adapter;
 
 import android.app.Activity;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
+import android.transition.Fade;
+import android.transition.TransitionInflater;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.MenuInflater;
@@ -35,7 +38,10 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.signature.StringSignature;
 import com.google.firebase.analytics.FirebaseAnalytics;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 
+import net.lubot.strimbagzrewrite.Constants;
+import net.lubot.strimbagzrewrite.ui.fragment.MarathonFragment;
 import net.lubot.strimbagzrewrite.util.Utils;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Stream;
@@ -54,16 +60,25 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
     private int position;
     private long lastUpdated;
     private int lastPosition = -1;
+    private String marathonChannel;
 
     public StreamsAdapter(Activity activity) {
         this.activity = activity;
         this.data = new ArrayList<>();
+        if (activity instanceof MainActivity) {
+            FirebaseRemoteConfig remoteConfig = ((MainActivity) activity).getRemoteConfig();
+            marathonChannel = remoteConfig.getString(Constants.MARATHON_CHANNEL);
+        }
     }
 
     public StreamsAdapter(Activity activity, Fragment fragment) {
         this.activity = activity;
         this.fragment = fragment;
         this.data = new ArrayList<>();
+        if (activity instanceof MainActivity) {
+            FirebaseRemoteConfig remoteConfig = ((MainActivity) activity).getRemoteConfig();
+            marathonChannel = remoteConfig.getString(Constants.MARATHON_CHANNEL);
+        }
     }
 
 
@@ -186,19 +201,19 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
         @Override
         public void onClick(View v) {
             Channel channel = data.get(getAdapterPosition()).channel();
-            if (channel.name().equals("gamesdonequick")) {
+            if (channel.name().equals(marathonChannel)) {
                 if (activity instanceof MainActivity) {
                     ((MainActivity) activity).showMarathonFragment();
                 }
             } else {
-                startPlayerActivity(data.get(getAdapterPosition()).channel());
+                startPlayerActivity(data.get(getAdapterPosition()));
             }
         }
 
-        private void startPlayerActivity(Channel channel) {
+        private void startPlayerActivity(Stream stream) {
             Bundle bundle = new Bundle();
-            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, channel.name());
-            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, channel.id() + "");
+            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, stream.channel().name());
+            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, stream.channel().id() + "");
             bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "stream");
 
             if (activity instanceof MainActivity) {
@@ -206,7 +221,7 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
                         .trackActivity(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
             }
 
-            Utils.startPlayerActivity(activity, channel);
+            Utils.startPlayerActivity(activity, stream);
         }
 
         @Override

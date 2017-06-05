@@ -21,7 +21,6 @@ package net.lubot.strimbagzrewrite.ui.fragment;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -70,12 +69,15 @@ public class ChatFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //connect();
-        //chat.addJavascriptInterface(new MessageInterface(getContext()), "msgInterface");
+        WebSocket webSocket = getWebSocketInstance();
+        if (webSocket != null) {
+            webSocket.connectAsynchronously();
+            chat.addJavascriptInterface(new MessageInterface(getContext()), "msgInterface");
+        }
     }
 
 
-    private WebSocket connect() {
+    private WebSocket getWebSocketInstance() {
         try {
             return new WebSocketFactory()
                     .setConnectionTimeout(5000)

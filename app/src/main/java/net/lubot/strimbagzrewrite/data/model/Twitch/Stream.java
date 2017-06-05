@@ -18,17 +18,29 @@
  */
 package net.lubot.strimbagzrewrite.data.model.Twitch;
 
+import android.os.Parcelable;
+import android.support.annotation.Nullable;
+
 import com.google.auto.value.AutoValue;
+import com.squareup.moshi.Json;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
 @AutoValue
-public abstract class Stream {
+public abstract class Stream implements Parcelable {
     public abstract long viewers();
     public abstract StreamPreview preview();
+    @Nullable
+    @Json(name = "community_id")
+    public abstract String community();
     public abstract Channel channel();
+    public abstract String created_at();
 
     public static JsonAdapter<Stream> jsonAdapter(Moshi moshi) {
         return new AutoValue_Stream.MoshiJsonAdapter(moshi);
+    }
+
+    public static Stream createEmpty() {
+        return new AutoValue_Stream(0, StreamPreview.createEmpty(), "", Channel.createEmpty(), "2017-05-02T10:41:26Z");
     }
 }

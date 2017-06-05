@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+android:id="@+id/leaderboard_item"
+android:orientation="vertical" android:layout_width="match_parent"
+android:layout_height="wrap_content">
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorAccent"
+        android:visibility="visible"
+        android:id="@+id/leaderboard_category"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:padding="8dp">
+        <TextView
+            android:id="@+id/leaderboard_category_text"
+            android:textColor="@android:color/primary_text_dark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="test12434"/>
+
+    </RelativeLayout>
+
+
+<RelativeLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:id="@+id/relativeLayout2"
+    android:background="@color/race_first"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
+    android:layout_alignStart="@+id/leaderboard_category"
+    android:layout_below="@+id/leaderboard_category">
+
+    <TextView
+        android:id="@+id/leaderboard_place_1st"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="4dp"
+        android:text="1st"/>
+
+    <TextView
+        android:id="@+id/leaderboard_name_1st"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TehUnlink"
+        android:layout_below="@+id/leaderboard_place_1st"
+        android:layout_alignStart="@+id/leaderboard_place_1st" />
+
+</RelativeLayout>
+
+<TextView
+    android:id="@+id/leaderboard_time_1st"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="00:00:00"
+    android:visibility="visible"
+    android:layout_marginTop="6dp"
+    android:padding="8dp"
+    android:layout_below="@+id/leaderboard_category"
+    android:layout_alignParentEnd="true" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/race_second"
+        android:id="@+id/relativeLayout3"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:layout_alignStart="@+id/relativeLayout2"
+        android:layout_below="@+id/relativeLayout2">
+
+        <TextView
+            android:id="@+id/leaderboard_place_2nd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="4dp"
+            android:text="2nd"/>
+
+        <TextView
+            android:id="@+id/leaderboard_name_2nd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TehUnlink"
+            android:layout_below="@+id/leaderboard_place_2nd"
+            android:layout_alignStart="@+id/leaderboard_place_2nd" />
+
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/leaderboard_time_2nd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00:00:00"
+        android:visibility="visible"
+        android:layout_marginTop="4dp"
+        android:padding="8dp"
+        android:layout_below="@+id/relativeLayout2"
+        android:layout_alignParentEnd="true" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/race_third"
+        android:id="@+id/relativeLayout4"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:layout_alignStart="@+id/relativeLayout3"
+        android:layout_below="@+id/relativeLayout3">
+
+        <TextView
+            android:id="@+id/leaderboard_place_3rd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="4dp"
+            android:text="3rd"/>
+
+        <TextView
+            android:id="@+id/leaderboard_name_3rd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TehUnlink"
+            android:layout_below="@+id/leaderboard_place_3rd"
+            android:layout_alignStart="@+id/leaderboard_place_3rd" />
+
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/leaderboard_time_3rd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00:00:00"
+        android:visibility="visible"
+        android:layout_marginTop="4dp"
+        android:padding="8dp"
+        android:layout_below="@+id/relativeLayout3"
+        android:layout_alignParentEnd="true" />
+
+</RelativeLayout>

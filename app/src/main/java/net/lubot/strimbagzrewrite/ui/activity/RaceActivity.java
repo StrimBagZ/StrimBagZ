@@ -53,7 +53,7 @@ public class RaceActivity extends CActivity {
         Intent intent = getIntent();
         race = intent.getParcelableExtra("race");
 
-        Log.d(TAG, "Game: " + race.game.name);
+        Log.d(TAG, "SRCGame: " + race.game.name);
         Log.d(TAG, "Goal: " + race.goal);
         Log.d(TAG, "Entrants: " + race.entrants.toString());
 
@@ -133,7 +133,7 @@ public class RaceActivity extends CActivity {
             }
         }
 
-        TwitchKraken.getService().getStreams(null, twitchNames, 0, entrants.size())
+        TwitchKraken.getService().getStreams(null, twitchNames, 0, entrants.size(), 3)
                 .enqueue(new Callback<LiveStreams>() {
                     @Override
                     public void onResponse(Call<LiveStreams> call, Response<LiveStreams> response) {

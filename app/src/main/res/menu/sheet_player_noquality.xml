@@ -2,12 +2,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <group>
         <item
-            android:id="@+id/unhostChannel"
-            android:title="@string/btn_host"/>
-        <item
-            android:id="@+id/hostChannel"
-            android:title="@string/btn_host"/>
-        <item
             android:id="@+id/player_subscribe"
             android:title="Subscribe"/>
         <item

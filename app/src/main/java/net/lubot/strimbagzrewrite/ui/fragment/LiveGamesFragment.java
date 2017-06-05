@@ -28,10 +28,13 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import net.lubot.strimbagzrewrite.Constants;
 import net.lubot.strimbagzrewrite.data.TwitchKraken;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Directory;
 import net.lubot.strimbagzrewrite.data.model.Twitch.DirectoryGame;
@@ -155,6 +158,9 @@ public class LiveGamesFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        if (login.equals(Constants.NO_USER)) {
+            return;
+        }
         if (listState != null && layoutManager != null) {
             layoutManager.onRestoreInstanceState(listState);
         }

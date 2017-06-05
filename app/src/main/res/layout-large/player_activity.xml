@@ -52,6 +52,14 @@
                         android:layout_centerInParent="true"
                         android:layout_below="@id/surface_progress"
                         android:visibility="gone"/>
+                    <Button
+                        android:id="@+id/surface_button"
+                        android:text="Picnic? Enable Auto Reconnect"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerInParent="true"
+                        android:layout_below="@id/surface_text"
+                        android:visibility="gone"/>
                 </RelativeLayout>
 
                 <!-- Media Top Controller -->
@@ -98,7 +106,7 @@
                 android:id="@+id/overlayToolbar"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/abc_action_bar_default_height_material"
-                android:background="@color/PrimaryDarkColor">
+                android:background="?attr/colorPrimary">
 
                 <ImageButton
                     android:layout_width="wrap_content"

@@ -147,7 +147,7 @@
 
     <!-- Stream -->
     <string name="stream_viewers">Viewers</string>
-    <string name="stream_went_offline">The stream went offline.</string>
+    <string name="stream_went_offline">The stream went offline.\nAuto Reconnect in case of picnic.</string>
     <string name="stream_connection_lost">Unable to connect to stream servers.</string>
     <string name="stream_viewer_list_title">Viewer List</string>
     <string name="stream_channel_description_title">Channel Description</string>
@@ -185,7 +185,7 @@
     <string name="preference_debug_address">IP address</string>
     <string name="preference_debug_address_context">Set IP address which hosts the FFZ dev build</string>
 
-    <!-- Game -->
+    <!-- SRCGame -->
     <string name="game_title">Game Overview</string>
     <string name="live_games_title">Followed Games</string>
     <string name="game_box">Box</string>

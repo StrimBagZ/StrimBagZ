@@ -21,6 +21,7 @@ package net.lubot.strimbagzrewrite.ui.fragment;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.design.widget.Snackbar;
@@ -51,6 +52,8 @@ import net.lubot.strimbagzrewrite.data.HoraroAPI;
 import net.lubot.strimbagzrewrite.data.TwitchAPI;
 import net.lubot.strimbagzrewrite.data.TwitchKraken;
 import net.lubot.strimbagzrewrite.data.model.GDQ.Run;
+import net.lubot.strimbagzrewrite.data.model.Horaro.RunData;
+import net.lubot.strimbagzrewrite.data.model.Horaro.ScheduleData;
 import net.lubot.strimbagzrewrite.data.model.Horaro.Ticker;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
 import net.lubot.strimbagzrewrite.data.model.Twitch.FollowedHosting;
@@ -59,9 +62,11 @@ import net.lubot.strimbagzrewrite.data.model.Twitch.Stream;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 import net.lubot.strimbagzrewrite.ui.adapter.EmptyRecyclerViewAdapter;
 import net.lubot.strimbagzrewrite.ui.adapter.GDQScheduleAdapter;
+import net.lubot.strimbagzrewrite.ui.adapter.HoraroScheduleAdapter;
 import net.lubot.strimbagzrewrite.ui.adapter.TickerAdapter;
 import net.lubot.strimbagzrewrite.util.Utils;
 
+import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -69,6 +74,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.Timer;
@@ -85,6 +91,7 @@ public class MarathonFragment extends Fragment {
     private RecyclerView recyclerView;
     private TextView emptyText;
     private TickerAdapter tickerAdapter;
+    private HoraroScheduleAdapter horaroAdapter;
     private GDQScheduleAdapter gdqAdapter;
     private EmptyRecyclerViewAdapter emptyView;
     private LinearLayoutManager layoutManager;
@@ -102,7 +109,7 @@ public class MarathonFragment extends Fragment {
     private String horaroID = "";
     private String marathonName;
     private String marathonChannel;
-    private Channel twitchStream;
+    private Stream twitchStream;
     private List<FollowedHosting.FollowedHosts> hostingChannels = new ArrayList<>();
 
     private String login;
@@ -132,6 +139,7 @@ public class MarathonFragment extends Fragment {
         linearLayout = (LinearLayout) view.findViewById(R.id.marathon_root);
         streamView = view.findViewById(R.id.marathon_stream);
         streamPreview = (ImageView) view.findViewById(R.id.previewImage);
+        streamPreview.setTransitionName("streamPreview");
         streamTitel = (TextView) view.findViewById(R.id.streamTitle);
         streamChannel = (TextView) view.findViewById(R.id.hostingTarget);
         nowPlaying = (TextView) view.findViewById(R.id.nowPlaying);
@@ -159,12 +167,13 @@ public class MarathonFragment extends Fragment {
                 horaroID = remoteConfig.getString(Constants.MARATHON_HORARO_ID);
             }
             marathonName = remoteConfig.getString(Constants.MARATHON_NAME);
-            marathonChannel = remoteConfig.getString(Constants.MARATHON_CHANNEL);
+            marathonChannel = remoteConfig.getString(Constants.MARATHON_CHANNEL_ID);
         }
 
         if (usingHoraro) {
-            tickerAdapter = new TickerAdapter(MarathonFragment.this);
-            recyclerView.setAdapter(tickerAdapter);
+            //tickerAdapter = new TickerAdapter(MarathonFragment.this);
+            horaroAdapter = new HoraroScheduleAdapter(MarathonFragment.this);
+            recyclerView.setAdapter(horaroAdapter);
         }
         if (scheduleService.equals("gdq")) {
             gdqAdapter = new GDQScheduleAdapter(MarathonFragment.this);
@@ -242,25 +251,28 @@ public class MarathonFragment extends Fragment {
     }
 
     private void getData(String id) {
-        HoraroAPI.getService().getTicker(id).enqueue(new Callback<Ticker>() {
+        HoraroAPI.getService().getSchedule(id).enqueue(new Callback<ScheduleData>() {
             @Override
-            public void onResponse(Call<Ticker> call, final Response<Ticker> response) {
+            public void onResponse(Call<ScheduleData> call, final Response<ScheduleData> response) {
                 if (response.code() == 200 && isVisible()) {
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            tickerAdapter.addAll(response.body());
-                            //final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'", Resources.getSystem().getConfiguration().locale);
-                            final Calendar start = Calendar.getInstance();
-                            start.setTimeInMillis(response.body().data().schedule().start_t() * 1000);
-                            activity.runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    streamTitel.setText(tickerAdapter.getName());
-                                    nowPlaying.setText("Starting at " + start.getTime().toString());
-                                }
-                            });
-                            Snackbar.make(linearLayout, "Successfully updated schedule", Snackbar.LENGTH_LONG);
+                            final ScheduleData.Schedule schedule = response.body().data();
+                            horaroAdapter.addAll(schedule.columns(), schedule.runs());
+                            scrollToCurrentTime(schedule.setup(), schedule.runs());
+                            if (twitchStream == null) {
+                                final Calendar start = Calendar.getInstance();
+                                start.setTimeInMillis(schedule.start() * 1000);
+                                activity.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        //streamTitel.setText(schedule.name());
+                                        nowPlaying.setText("Starting at " + DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.SHORT, Resources.getSystem().getConfiguration().locale).format(start.getTime()));
+                                    }
+                                });
+                            }
+                            //Snackbar.make(linearLayout, "Successfully updated schedule", Snackbar.LENGTH_LONG);
                         }
                     });
                 }
@@ -275,7 +287,7 @@ public class MarathonFragment extends Fragment {
             }
 
             @Override
-            public void onFailure(Call<Ticker> call, Throwable t) {
+            public void onFailure(Call<ScheduleData> call, Throwable t) {
                 if (isVisible() && swipeContainer.isRefreshing()) {
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
@@ -359,11 +371,40 @@ public class MarathonFragment extends Fragment {
                     e.printStackTrace();
                 }
             }
+        } else {
+
+        }
+    }
+
+    private void scrollToCurrentTime(long setup, List<RunData> runs) {
+        if (horaroAdapter != null) {
+            Calendar currentTime = Calendar.getInstance();
+            for (int i = 0, runsSize = runs.size(); i < runsSize; i++) {
+                RunData run = runs.get(i);
+                Calendar endTime = Calendar.getInstance();
+                endTime.setTimeInMillis((run.scheduled() + run.length() + setup) * 1000);
+                Map<TimeUnit, Long> timeDiff =
+                        Utils.computeTimeDiff(currentTime, endTime);
+                long diffDay = timeDiff.get(TimeUnit.DAYS);
+                long diffHr = timeDiff.get(TimeUnit.HOURS);
+                long diffMin = timeDiff.get(TimeUnit.MINUTES);
+                // if diffMin is lower than 0, the Run has ended
+                // else it's still going
+                Log.d("Run diff", " diffDay: " + diffDay  + " diffHr: " + diffHr + " diffMin: " + diffMin);
+                if (diffMin >= 0 && diffHr >= 0 && diffDay >= 0) {
+                    Log.d("Run diff", "found current run");
+                    if (i != 0) {
+                        horaroAdapter.markCurrentRun(i);
+                        layoutManager.scrollToPositionWithOffset(i, 0);
+                    }
+                    break;
+                }
+            }
         }
     }
 
     private void getSpecificStream(final String channel) {
-        TwitchKraken.getService().getStreams(null, channel, 0, 1).enqueue(new Callback<LiveStreams>() {
+        TwitchKraken.getService().getStreams(null, channel, 0, 1, 5).enqueue(new Callback<LiveStreams>() {
             @Override
             public void onResponse(Call<LiveStreams> call, final Response<LiveStreams> response) {
                 if (response.code() == 200) {
@@ -376,7 +417,7 @@ public class MarathonFragment extends Fragment {
                         activity.runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                twitchStream = stream.channel();
+                                twitchStream = stream;
                                 linearLayout.setClickable(true);
                                 streamView.setClickable(true);
                                 streamChannel.setText(stream.channel().displayName());
@@ -385,15 +426,15 @@ public class MarathonFragment extends Fragment {
                                         NumberFormat.getInstance().format(stream.viewers()) + " viewers";
                                 nowPlaying.setText(tmp);
                                 Glide.with(activity)
-                                        .load(stream.preview().large())
+                                        .load(stream.preview().medium())
                                         .centerCrop()
-                                        .signature(new StringSignature(stream.channel().name() + stream.channel().updated_at()))
+                                        .signature(new StringSignature(twitchStream.channel().name() + twitchStream.channel().updated_at()))
                                         .into(streamPreview);
                                 streamView.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View view) {
                                         if (!marathonChannel.equals("gamesdonequick")) {
-                                            Utils.startPlayerActivity(activity, stream.channel());
+                                            Utils.startMarathonPlayerActivity(activity, twitchStream, horaroID);
                                         } else {
                                             streamView.showContextMenu();
                                         }
@@ -443,7 +484,11 @@ public class MarathonFragment extends Fragment {
                                             });
                                         }
                                         if (hostingChannels != null && !hostingChannels.isEmpty()) {
-                                            menu.setHeaderTitle("Choose non-cancerous Chat");
+                                            if (marathonChannel.equals("gamesdonequick")) {
+                                                menu.setHeaderTitle("Choose non-cancerous Chat");
+                                            } else {
+                                                menu.setHeaderTitle("Choose hosted Chat");
+                                            }
                                             for (final FollowedHosting.FollowedHosts host : hostingChannels) {
                                                 menu.add(host.display_name()).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                                                     @Override
@@ -482,7 +527,7 @@ public class MarathonFragment extends Fragment {
     }
 
     private void getOfflineChannel(String ch) {
-        TwitchKraken.getService().getChannel(ch).enqueue(new Callback<Channel>() {
+        TwitchKraken.getService().getChannel(ch, 5).enqueue(new Callback<Channel>() {
             @Override
             public void onResponse(Call<Channel> call, Response<Channel> response) {
                 if (response.code() == 200) {
@@ -497,6 +542,7 @@ public class MarathonFragment extends Fragment {
                             streamView.setClickable(false);
                             streamChannel.setText(channel.displayName());
                             if (!marathonChannel.equals("gamesdonequick")) {
+                                streamTitel.setText(channel.status());
                                 //streamTitel.setText(tickerAdapter.getName());
                             } else {
                                 // GDQ case TODO
@@ -594,8 +640,8 @@ public class MarathonFragment extends Fragment {
                 break;
             }
         }
-        Log.d("hostingChannels", "hosted by: " + result.hostedBy());
-        if (result.hostedBy() != null) {
+        if (result != null && result.hostedBy() != null) {
+            Log.d("hostingChannels", "hosted by: " + result.hostedBy());
             hostingChannels.clear();
             hostingChannels.addAll(result.hostedBy());
         }

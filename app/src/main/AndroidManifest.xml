@@ -41,19 +41,28 @@
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="strimbagz"
+                    android:host="lubot.net"
+                    android:path="/strimbagz/redirect" />
+            </intent-filter>
 
             <meta-data
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
         </activity>
         <activity
+            android:name=".ui.activity.LoginActivity"
+            android:theme="@style/DefaultAppTheme" />
+        <activity
             android:name=".ui.activity.PlayerActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:theme="@style/DefaultAppTheme"
             android:windowSoftInputMode="stateHidden|adjustResize" />
-        <activity
-            android:name=".ui.activity.LoginActivity"
-            android:theme="@style/DefaultAppTheme" />
         <activity
             android:name=".ui.activity.RaceActivity"
             android:theme="@style/DefaultAppTheme" />

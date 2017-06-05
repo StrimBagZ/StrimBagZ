@@ -29,6 +29,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import net.lubot.strimbagzrewrite.R;
@@ -46,6 +47,7 @@ public class SRLRaceDialog extends DialogFragment {
     private TextView goal;
     private TextView timer;
     private StopwatchTextView stopwatchTextView;
+    private Button closeButton;
 
     public static SRLRaceDialog newInstance(String game, String goal, long startTime, String state,
                                             ArrayList<SRLRaceEntrant> entrants) {
@@ -91,6 +93,7 @@ public class SRLRaceDialog extends DialogFragment {
         game = (TextView) view.findViewById(R.id.race_game);
         goal = (TextView) view.findViewById(R.id.race_goal);
         timer = (TextView) view.findViewById(R.id.race_timer);
+        closeButton = (Button) view.findViewById(R.id.race_btn_close);
         recyclerView = (RecyclerView) view.findViewById(R.id.listView);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getContext());
         recyclerView.setLayoutManager(layoutManager);
@@ -117,6 +120,12 @@ public class SRLRaceDialog extends DialogFragment {
         } else {
             Log.d("SRLRACE", "arguments null");
         }
+        closeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dismiss();
+            }
+        });
     }
 
 }

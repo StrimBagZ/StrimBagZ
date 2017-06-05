@@ -20,6 +20,8 @@ package net.lubot.strimbagzrewrite.data;
 
 import net.lubot.strimbagzrewrite.data.model.Twitch.AccessToken;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
+import net.lubot.strimbagzrewrite.data.model.Twitch.ChannelCommunity;
+import net.lubot.strimbagzrewrite.data.model.Twitch.Chatter;
 import net.lubot.strimbagzrewrite.data.model.Twitch.CommunityObject;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Directory;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Ember;
@@ -29,6 +31,7 @@ import net.lubot.strimbagzrewrite.data.model.Twitch.FollowedHosting;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Hosts;
 import net.lubot.strimbagzrewrite.data.model.Twitch.KrakenBase;
 import net.lubot.strimbagzrewrite.data.model.Twitch.LiveStreams;
+import net.lubot.strimbagzrewrite.data.model.Twitch.OAuthToken;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Panel;
 import net.lubot.strimbagzrewrite.data.model.Twitch.StreamObject;
 import net.lubot.strimbagzrewrite.data.model.Twitch.TwitchUser;
@@ -38,7 +41,9 @@ import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.DELETE;
 import retrofit2.http.GET;
+import retrofit2.http.Header;
 import retrofit2.http.Headers;
+import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
@@ -49,16 +54,22 @@ public interface TwitchService {
     // Requires-Authentication is only a reference header to determine if the OAuth token should be
     // included, it will be removed from the request after inserted.
     interface TwitchKrakenService {
-        @GET("/kraken")
+        @POST
+        Call<OAuthToken> getToken(@Url String url, @Header("Code") String code);
+
+        @POST
+        Call<Void> revokeToken(@Url String url, @Header("Token") String token);
+
+        @GET("/kraken?api_version=5")
         @Headers("Requires-Authentication: true")
         Call<KrakenBase> getBase();
 
-        @GET("user")
+        @GET("user?api_version=5")
         @Headers("Requires-Authentication: true")
         Call<TwitchUser> getUser();
 
         @GET("channels/{channel}")
-        Call<Channel> getChannel(@Path("channel") String channel);
+        Call<Channel> getChannel(@Path("channel") String channel, @Query("api_version") int version);
 
         @GET("streams/followed?api_version=5")
         @Headers("Requires-Authentication: true")
@@ -66,14 +77,14 @@ public interface TwitchService {
 
         @GET("streams")
         Call<LiveStreams> getStreams(@Query("game") String game, @Query("channel") String channel,
-                                     @Query("offset") int offset, @Query("limit") int limit);
+                                     @Query("offset") int offset, @Query("limit") int limit, @Query("api_version") int version);
 
         @GET("streams?api_version=5")
         Call<LiveStreams> getCommunityStreams(@Query("community_id") String id,
                                      @Query("offset") int offset, @Query("limit") int limit);
 
-        @GET("streams/{channel}")
-        Call<StreamObject> getStreamStatus(@Path("channel") String channel);
+        @GET("streams/{id}?api_version=5")
+        Call<StreamObject> getStreamStatus(@Path("id") String channel);
 
         @GET("games/top")
         Call<Directory> getDirectory(@Query("limit") int limit, @Query("offset") int offset);
@@ -81,8 +92,8 @@ public interface TwitchService {
         @GET("search/streams")
         Call<LiveStreams> searchStreams(@Query("query") String query);
 
-        @GET("users/{user}/follows/channels")
-        Call<FollowedChannels> getFollowedChannels(@Path("user") String user, @Query("offset") int offset);
+        @GET("users/{id}/follows/channels?api_version=5")
+        Call<FollowedChannels> getFollowedChannels(@Path("id") String id, @Query("offset") int offset);
 
         @GET("users/{user}/follows/channels/{target}")
         Call<Void> checkFollow(@Path("user") String user, @Path("target") String target);
@@ -104,6 +115,9 @@ public interface TwitchService {
 
         @GET("communities/{id}?api_version=5")
         Call<Void> getCommunity(@Path("id") String id);
+
+        @GET("channels/{id}/community?api_version=5")
+        Call<ChannelCommunity> getChannelCommunity(@Path("id") String id);
     }
 
     interface TwitchAPIService {
@@ -130,6 +144,9 @@ public interface TwitchService {
 
         @GET
         Call<Hosts> getHostingStatus(@Url String url);
+
+        @GET
+        Call<Chatter> getChatters(@Url String url);
     }
 
 }

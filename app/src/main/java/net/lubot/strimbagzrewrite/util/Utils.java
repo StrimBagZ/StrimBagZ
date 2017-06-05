@@ -14,14 +14,15 @@ import net.lubot.strimbagzrewrite.Constants;
 import net.lubot.strimbagzrewrite.R;
 import net.lubot.strimbagzrewrite.data.model.Twitch.AccessToken;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
+import net.lubot.strimbagzrewrite.data.model.Twitch.Stream;
 import net.lubot.strimbagzrewrite.data.model.Twitch.TwitchUser;
 import net.lubot.strimbagzrewrite.data.TwitchAPI;
 import net.lubot.strimbagzrewrite.data.TwitchKraken;
-import net.lubot.strimbagzrewrite.ui.activity.LoginActivity;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 import net.lubot.strimbagzrewrite.ui.activity.PlayerActivity;
 import net.lubot.strimbagzrewrite.ui.activity.RaceActivity;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -39,6 +40,16 @@ import retrofit2.Response;
 public class Utils {
 
     private Utils() {}
+
+    private static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    private static SecureRandom rnd = new SecureRandom();
+
+    public static String randomString(int len) {
+        StringBuilder sb = new StringBuilder(len);
+        for(int i = 0; i < len; i++)
+            sb.append(AB.charAt(rnd.nextInt(AB.length())));
+        return sb.toString();
+    }
 
     public static String token(String token) {
         return String.format("OAuth %s", token);
@@ -63,7 +74,7 @@ public class Utils {
         }
     }
 
-    public static void getTwitchUser(final Activity activity) {
+    public static void getTwitchUser(final Activity activity, final boolean login) {
         Call<TwitchUser> call = TwitchKraken.getService().getUser();
         call.enqueue(new CallbackZ<TwitchUser>(call, true) {
             @Override
@@ -75,37 +86,46 @@ public class Utils {
                             .edit()
                             .putString(Constants.DISPLAY_NAME, user.displayName())
                             .putString(Constants.LOGIN, user.name())
-                            .putString(Constants.TWITCH_ID, user.id() + "")
+                            .putString(Constants.TWITCH_ID, user.id())
                             .apply();
+
+                    if (login) {
+                        restartActivity(activity);
+                        return;
+                    }
 
                     if (activity instanceof MainActivity) {
                         ((MainActivity) activity).getChannel(user.name());
                     }
 
-                    if (activity instanceof LoginActivity) {
-                        activity.setResult(Constants.LOGGED_IN, new Intent());
-                        activity.finish();
-                    }
                 }
             }
         });
     }
 
     public static void startPlayerActivity(Context context, Channel channel, boolean loadChannel) {
-        startPlayerActivity(context, channel, null, null, loadChannel);
+        startPlayerActivity(context, channel, null, null, loadChannel, null);
     }
 
     public static void startPlayerActivity(Context context, Channel channel) {
-        startPlayerActivity(context, channel, null, null, false);
+        startPlayerActivity(context, channel, null, null, false, null);
     }
 
-    public static void startPlayerActivity(Context context, Channel channel, String chatRoom) {
-        startPlayerActivity(context, channel, null, chatRoom, false);
+    public static void startPlayerActivity(Context context, Channel stream, String chatRoom) {
+        startPlayerActivity(context, stream, null, chatRoom, false, null);
+    }
+
+    public static void startPlayerActivity(Context context, Stream stream, String chatRoom) {
+        startPlayerActivity(context, stream, null, chatRoom, false, null);
+    }
+
+    public static void startMarathonPlayerActivity(Context context, Stream stream, String horaroID) {
+        startPlayerActivity(context, stream, null, null, false, horaroID);
     }
 
     public static void startPlayerActivity(final Context context, final Channel channel,
                                            final String quality, final String chatRoom,
-                                           final boolean loadChannel) {
+                                           final boolean loadChannel, final String horaroID) {
         TwitchAPI.getService().getChannelToken(channel.name()).enqueue(new Callback<AccessToken>() {
             @Override
             public void onResponse(Call<AccessToken> call, Response<AccessToken> response) {
@@ -115,7 +135,7 @@ public class Utils {
                     url = url.replace("{channel}", channel.name());
                     Uri uri = Uri.parse(url)
                             .buildUpon()
-                            .appendQueryParameter("allow_audio_only", "false")
+                            //.appendQueryParameter("allow_audio_only", "false")
                             .appendQueryParameter("token", token.token())
                             .appendQueryParameter("sig", token.sig())
                             .appendQueryParameter("allow_source", "true")
@@ -138,6 +158,66 @@ public class Utils {
                     }
                     if (loadChannel) {
                         intent.putExtra("loadChannel", true);
+                    }
+                    if (horaroID != null) {
+                        intent.putExtra("isMarathon", true);
+                        intent.putExtra("horaroID", horaroID);
+                    }
+                    context.startActivity(intent);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<AccessToken> call, Throwable t) {
+
+            }
+        });
+    }
+
+    public static void startPlayerActivity(Context context, Stream stream) {
+        startPlayerActivity(context, stream, null, null, false, null);
+    }
+
+    public static void startPlayerActivity(final Context context, final Stream stream,
+                                           final String quality, final String chatRoom,
+                                           final boolean loadChannel, final String horaroID) {
+        final Channel channel = stream.channel();
+        TwitchAPI.getService().getChannelToken(channel.name()).enqueue(new Callback<AccessToken>() {
+            @Override
+            public void onResponse(Call<AccessToken> call, Response<AccessToken> response) {
+                if (response.isSuccessful()) {
+                    AccessToken token = response.body();
+                    String url = Constants.URL_USHER;
+                    url = url.replace("{channel}", channel.name());
+                    Uri uri = Uri.parse(url)
+                            .buildUpon()
+                            //.appendQueryParameter("allow_audio_only", "false")
+                            .appendQueryParameter("token", token.token())
+                            .appendQueryParameter("sig", token.sig())
+                            .appendQueryParameter("allow_source", "true")
+                            .appendQueryParameter("allow_spectre", "true")
+                            .appendQueryParameter("p", new Random().nextInt(999999) + "")
+                            .build();
+
+                    final Intent intent = new Intent(context, PlayerActivity.class)
+                            .setData(uri)
+                            .putExtra("stream", stream);
+                    if (quality == null) {
+                        intent.putExtra("quality", getQuality(context));
+                    } else {
+                        intent.putExtra("quality", quality);
+                    }
+                    if (chatRoom != null) {
+                        intent.putExtra("chatRoom", chatRoom);
+                    } else {
+                        intent.putExtra("chatRoom", channel.name());
+                    }
+                    if (loadChannel) {
+                        intent.putExtra("loadChannel", true);
+                    }
+                    if (horaroID != null) {
+                        intent.putExtra("isMarathon", true);
+                        intent.putExtra("horaroID", horaroID);
                     }
                     context.startActivity(intent);
                 }

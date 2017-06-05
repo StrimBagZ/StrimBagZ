@@ -27,7 +27,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="@dimen/abc_action_bar_default_height_material"
-        android:background="@color/PrimaryDarkColor"
+        android:background="?attr/colorPrimary"
         android:id="@+id/relativeLayout">
 
         <TextView
@@ -35,6 +35,7 @@
             android:layout_height="wrap_content"
             android:text="@string/stream_viewer_list_title"
             style="@style/TextAppearance.AppCompat.Widget.ActionBar.Title.Inverse"
+            android:textColor="@android:color/primary_text_dark"
             android:layout_centerVertical="true"
             android:layout_centerHorizontal="true" />
 
@@ -42,16 +43,16 @@
             android:id="@+id/viewerListLoading"
             android:indeterminate="true"
             android:indeterminateDrawable="@xml/progressbar_white"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="10dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:paddingStart="12dp"
             android:layout_centerVertical="true"
             android:layout_alignParentStart="true" />
 
         <ImageButton
             android:id="@+id/viewerListReload"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
             android:scaleType="fitXY"
             android:layout_marginStart="10dp"
             app:srcCompat="@drawable/ic_refresh"
@@ -61,7 +62,7 @@
             android:layout_alignParentStart="true" />
 
         <TextView
-            android:id="@+id/viewerCounter"
+            android:id="@+id/chatterCounter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0"
@@ -71,19 +72,20 @@
             android:paddingEnd="5dp"
             android:layout_toStartOf="@+id/viewerList" />
 
-        <ImageView
+        <TextView
             android:id="@+id/viewerList"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:srcCompat="@drawable/ic_viewer_list"
+            android:text="in Chat"
+            android:textColor="@android:color/primary_text_dark"
             android:layout_centerVertical="true"
             android:layout_alignParentEnd="true"
             android:paddingEnd="10dp" />
 
     </RelativeLayout>
 
-    <WebView
-        android:id="@+id/webViewViewerList"
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/viewerRecyclerView"
         android:layout_width="fill_parent"
         android:layout_height="match_parent"
         android:isScrollContainer="true"

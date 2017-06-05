@@ -13,4 +13,6 @@
     <dimen name="item_margin">8dp</dimen>
     <dimen name="column_width">160dp</dimen>
     <dimen name="gridlayout_margin">0.125dp</dimen>
+
+    <dimen name="my_margin">8dip</dimen>
 </resources>

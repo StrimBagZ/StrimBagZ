@@ -32,6 +32,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import net.lubot.strimbagzrewrite.BuildConfig;
+import net.lubot.strimbagzrewrite.Constants;
 import net.lubot.strimbagzrewrite.data.model.Twitch.Channel;
 import net.lubot.strimbagzrewrite.data.model.Twitch.FollowedHosting;
 import net.lubot.strimbagzrewrite.data.TwitchAPI;
@@ -119,8 +120,10 @@ public class HostedStreamsFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        if (!login.equals(Constants.NO_USER)) {
             forceRefreshAnimation();
             getData();
+        }
     }
 
     public Channel getSelectedChannel() {

@@ -20,6 +20,7 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.media.MediaCodec;
 import android.os.Handler;
+import android.util.Log;
 
 import com.google.android.exoplayer.DefaultLoadControl;
 import com.google.android.exoplayer.LoadControl;
@@ -32,9 +33,9 @@ import com.google.android.exoplayer.hls.DefaultHlsTrackSelector;
 import com.google.android.exoplayer.hls.HlsChunkSource;
 import com.google.android.exoplayer.hls.HlsMasterPlaylist;
 import com.google.android.exoplayer.hls.HlsPlaylist;
-import com.google.android.exoplayer.hls.HlsPlaylistParser;
 import com.google.android.exoplayer.hls.HlsSampleSource;
 import com.google.android.exoplayer.hls.PtsTimestampAdjusterProvider;
+import com.google.android.exoplayer.hls.Variant;
 import com.google.android.exoplayer.metadata.MetadataTrackRenderer;
 import com.google.android.exoplayer.metadata.id3.Id3Frame;
 import com.google.android.exoplayer.metadata.id3.Id3Parser;
@@ -50,6 +51,7 @@ import com.google.android.exoplayer.util.ManifestFetcher.ManifestCallback;
 import net.lubot.strimbagzrewrite.util.Player.RendererBuilder;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -64,6 +66,8 @@ public class HlsRendererBuilder implements RendererBuilder {
     private final Context context;
     private final String userAgent;
     private final String url;
+
+    private static List<String> trackNames = new ArrayList<>();
 
     private AsyncRendererBuilder currentAsyncBuilder;
 
@@ -87,6 +91,15 @@ public class HlsRendererBuilder implements RendererBuilder {
         }
     }
 
+    @Override
+    public List<String> getTrackNames() {
+        return trackNames;
+    }
+
+    public void resetTrackNames() {
+        trackNames.clear();
+    }
+
     private static final class AsyncRendererBuilder implements ManifestCallback<HlsPlaylist> {
 
         private final Context context;
@@ -102,9 +115,8 @@ public class HlsRendererBuilder implements RendererBuilder {
             this.userAgent = userAgent;
             this.url = url;
             this.player = player;
-            HlsPlaylistParser parser = new HlsPlaylistParser();
             playlistFetcher = new ManifestFetcher<>(url, new DefaultUriDataSource(context, userAgent),
-                    parser);
+                    new HlsPlaylistParser());
         }
 
         public void init() {
@@ -130,6 +142,8 @@ public class HlsRendererBuilder implements RendererBuilder {
                 return;
             }
 
+            Log.d("PlayList type", "type is " + manifest);
+
             Handler mainHandler = player.getMainHandler();
             LoadControl loadControl = new DefaultLoadControl(new DefaultAllocator(BUFFER_SEGMENT_SIZE));
             DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
@@ -154,7 +168,15 @@ public class HlsRendererBuilder implements RendererBuilder {
             // Build the text renderer, preferring Webvtt where available.
             boolean preferWebvtt = false;
             if (manifest instanceof HlsMasterPlaylist) {
-                preferWebvtt = !((HlsMasterPlaylist) manifest).subtitles.isEmpty();
+                HlsMasterPlaylist masterPlaylist = (HlsMasterPlaylist) manifest;
+                List<Variant> variants = masterPlaylist.variants;
+                trackNames.clear();
+                for (int i = 0, variantsSize = variants.size(); i < variantsSize; i++) {
+                    Variant var = variants.get(i);
+                    trackNames.add(var.getFormat().id);
+                    //Log.d("Variant Format", "id: " + var.getFormat().id);
+                }
+                preferWebvtt = !masterPlaylist.subtitles.isEmpty();
             }
             TrackRenderer textRenderer;
             if (preferWebvtt) {

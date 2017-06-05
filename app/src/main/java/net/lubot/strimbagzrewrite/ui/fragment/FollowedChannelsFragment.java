@@ -84,7 +84,7 @@ public class FollowedChannelsFragment extends Fragment {
         }
     };
 
-    private String login;
+    private String userID;
 
     @Override
     public void onAttach(Context context) {
@@ -102,7 +102,7 @@ public class FollowedChannelsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         if (getActivity() instanceof MainActivity) {
-            login = ((MainActivity) getActivity()).getLogin();
+            userID = ((MainActivity) getActivity()).getUserID();
         }
 
         swipeContainer = (SwipeRefreshLayout) view.findViewById(R.id.swipeContainer);
@@ -173,7 +173,7 @@ public class FollowedChannelsFragment extends Fragment {
     }
 
     private void getData() {
-        TwitchKraken.getService().getFollowedChannels(login, 0)
+        TwitchKraken.getService().getFollowedChannels(userID, 0)
                 .enqueue(new Callback<FollowedChannels>() {
                     @Override
                     public void onResponse(Call<FollowedChannels> call,
@@ -222,7 +222,7 @@ public class FollowedChannelsFragment extends Fragment {
     private void loadMoreItems() {
         isLoading = true;
         currentOffset += PAGE_SIZE;
-        TwitchKraken.getService().getFollowedChannels(login, currentOffset)
+        TwitchKraken.getService().getFollowedChannels(userID, currentOffset)
                 .enqueue(new Callback<FollowedChannels>() {
                     @Override
                     public void onResponse(Call<FollowedChannels> call,
@@ -261,7 +261,7 @@ public class FollowedChannelsFragment extends Fragment {
     }
 
     private void unfollowChannel(final Channel channel) {
-        TwitchKraken.getService().unfollowChannel(login, channel.name())
+        TwitchKraken.getService().unfollowChannel(userID, channel.name())
                 .enqueue(new Callback<Void>() {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {

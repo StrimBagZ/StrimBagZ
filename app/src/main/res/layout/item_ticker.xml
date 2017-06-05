@@ -13,6 +13,7 @@
         card_view:cardCornerRadius="4dp">
 
         <LinearLayout
+            android:id="@+id/ticker_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">

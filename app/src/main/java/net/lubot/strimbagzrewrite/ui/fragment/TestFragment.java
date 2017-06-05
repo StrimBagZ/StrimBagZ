@@ -19,7 +19,6 @@ import net.lubot.strimbagzrewrite.data.model.Twitch.StreamObject;
 import net.lubot.strimbagzrewrite.data.TwitchAPI;
 import net.lubot.strimbagzrewrite.data.TwitchKraken;
 import net.lubot.strimbagzrewrite.R;
-import net.lubot.strimbagzrewrite.ui.activity.LoginActivity;
 import net.lubot.strimbagzrewrite.ui.activity.MainActivity;
 import net.lubot.strimbagzrewrite.ui.activity.PlayerActivity;
 
@@ -52,9 +51,8 @@ public class TestFragment extends Fragment {
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent Intent = new Intent(getActivity(), LoginActivity.class);
-                Intent.putExtra("url", Constants.URL_TWITCH_LOGIN);
-                startActivityForResult(Intent, 1);
+                Intent Intent = new Intent(android.content.Intent.ACTION_VIEW, Uri.parse(Constants.URL_TWITCH_AUTHENTICATION));
+                startActivity(Intent);
             }
         });
         playerButton.setOnClickListener(new View.OnClickListener() {

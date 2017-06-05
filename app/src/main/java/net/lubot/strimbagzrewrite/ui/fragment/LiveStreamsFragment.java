@@ -20,6 +20,7 @@ package net.lubot.strimbagzrewrite.ui.fragment;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v4.app.Fragment;
@@ -29,6 +30,8 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -111,7 +114,7 @@ public class LiveStreamsFragment extends Fragment {
                             && totalItemCount >= PAGE_SIZE) {
                         // GET MORE
                         if (game != null && !game.isEmpty()) {
-                            getSpecificStreams(game, null);
+                            getSpecificStreams(game, null, null);
                         }
                     }
                 }
@@ -185,6 +188,7 @@ public class LiveStreamsFragment extends Fragment {
         }
         recyclerView.setAdapter(adapter);
         recyclerView.addOnScrollListener(onScrollListener);
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -226,11 +230,11 @@ public class LiveStreamsFragment extends Fragment {
 
         forceRefreshAnimation();
         if (game != null && !game.isEmpty()) {
-            getSpecificStreams(game, null);
+            getSpecificStreams(game, null, null);
             swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
                 @Override
                 public void onRefresh() {
-                    getSpecificStreams(game, null);
+                    getSpecificStreams(game, null, null);
                 }
             });
             return;
@@ -271,8 +275,7 @@ public class LiveStreamsFragment extends Fragment {
                 @Override
                 public void onClick(View view) {
                     Intent Intent = new Intent(getActivity(), LoginActivity.class);
-                    Intent.putExtra("url", Constants.URL_TWITCH_AUTHENTICATION);
-                    startActivityForResult(Intent, 1);
+                    startActivity(Intent);
                 }
             };
             emptyView = new EmptyRecyclerViewAdapter(context, R.string.channel_name_empty,
@@ -286,7 +289,7 @@ public class LiveStreamsFragment extends Fragment {
     private void loadMoreData() {
         Log.d("loadMoreData", "isLastPage: " + isLastPage);
         if (game != null && !game.isEmpty()) {
-            getSpecificStreams(game, null);
+            getSpecificStreams(game, null, null);
             return;
         }
 
@@ -397,9 +400,18 @@ public class LiveStreamsFragment extends Fragment {
                 });
     }
 
-    private void getSpecificStreams(String game, String channels) {
+
+    /*
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.toolbar_games, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+    */
+
+    private void getSpecificStreams(String game, String channels, String community) {
         isLoading = true;
-        TwitchKraken.getService().getStreams(game, channels, offset, PAGE_SIZE)
+        TwitchKraken.getService().getStreams(game, channels, offset, PAGE_SIZE, 3)
                 .enqueue(new Callback<LiveStreams>() {
                     @Override
                     public void onResponse(Call<LiveStreams> call, Response<LiveStreams> response) {
@@ -508,7 +520,7 @@ public class LiveStreamsFragment extends Fragment {
                         }
                     }
                 }
-                getSpecificStreams(null, twitchNames);
+                getSpecificStreams(null, twitchNames, null);
             }
 
             @Override

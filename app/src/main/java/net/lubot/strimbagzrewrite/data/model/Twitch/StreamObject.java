@@ -18,12 +18,15 @@
  */
 package net.lubot.strimbagzrewrite.data.model.Twitch;
 
+import android.support.annotation.Nullable;
+
 import com.google.auto.value.AutoValue;
 import com.squareup.moshi.JsonAdapter;
 import com.squareup.moshi.Moshi;
 
 @AutoValue
 public abstract class StreamObject {
+    @Nullable
     public abstract Stream stream();
 
     public static JsonAdapter<StreamObject> jsonAdapter(Moshi moshi) {

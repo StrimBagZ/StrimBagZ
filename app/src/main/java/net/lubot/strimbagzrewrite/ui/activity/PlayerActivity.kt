@@ -24,6 +24,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.*
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Rect
@@ -38,8 +40,8 @@ import android.os.Looper
 import android.support.design.widget.Snackbar
 import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory
 import android.support.v4.widget.DrawerLayout
-import android.support.v7.app.AppCompatActivity
 import android.support.v7.app.NotificationCompat
+import android.support.v7.widget.LinearLayoutManager
 import android.text.TextUtils
 import android.util.Log
 import android.view.*
@@ -47,11 +49,8 @@ import android.view.View.*
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.webkit.*
-import android.widget.FrameLayout
-import android.widget.PopupMenu
+import android.widget.*
 import android.widget.PopupMenu.OnMenuItemClickListener
-import android.widget.RelativeLayout
-import android.widget.Toast
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.BitmapImageViewTarget
 import com.cocosw.bottomsheet.BottomSheet
@@ -63,6 +62,8 @@ import com.google.android.exoplayer.MediaFormat
 import com.google.android.exoplayer.audio.AudioCapabilities
 import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver
 import com.google.android.exoplayer.drm.UnsupportedDrmException
+import com.google.android.exoplayer.metadata.id3.Id3Frame
+import com.google.android.exoplayer.metadata.id3.TextInformationFrame
 import com.google.android.exoplayer.util.MimeTypes
 import com.google.android.exoplayer.util.Util
 import com.google.android.exoplayer.util.VerboseLogUtil
@@ -81,8 +82,14 @@ import net.lubot.strimbagzrewrite.data.TwitchAPI
 import net.lubot.strimbagzrewrite.data.TwitchKraken
 import net.lubot.strimbagzrewrite.StrimBagZApplication
 import net.lubot.strimbagzrewrite.data.HoraroAPI
+import net.lubot.strimbagzrewrite.data.SpeedrunCom
 import net.lubot.strimbagzrewrite.data.model.GDQ.Run
+import net.lubot.strimbagzrewrite.data.model.Horaro.ScheduleData
+import net.lubot.strimbagzrewrite.data.model.SpeedrunCom.Record
+import net.lubot.strimbagzrewrite.data.model.SpeedrunCom.SRCGame
 import net.lubot.strimbagzrewrite.data.model.Twitch.*
+import net.lubot.strimbagzrewrite.ui.adapter.ChatterAdapter
+import net.lubot.strimbagzrewrite.ui.dialog.LeaderboardDialog
 import net.lubot.strimbagzrewrite.ui.dialog.SRLRaceDialog
 import net.lubot.strimbagzrewrite.ui.dialog.ScheduleDialog
 import net.lubot.strimbagzrewrite.util.*
@@ -97,11 +104,14 @@ import java.io.IOException
 import java.io.InputStream
 import java.net.CookieHandler
 import java.net.CookieManager
+import java.security.SecureRandom
+import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.*
 
-class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, AudioCapabilitiesReceiver.Listener {
+class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Player.Id3MetadataListener, AudioCapabilitiesReceiver.Listener {
 
     private var contentFrame: FrameLayout? = null
     private var contentRelative: RelativeLayout? = null
@@ -132,9 +142,20 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
     private var oauth: String = Constants.NO_TOKEN
     private var quality: Int = 0
 
+    private var streamUp: Boolean = false
+    private var stream: Stream = Stream.createEmpty()
+    private var uptimeTimer = Timer("uptimeTimer", true)
     private var channel: Channel = Channel.createEmpty()
+    private var recordData: MutableList<Record.RecordData>? = null
+    private var isMarathon: Boolean = false
+    private var horaroID: String = "NONE"
     private var chatRoom: String = "NONE"
     private var productExists: Boolean = false
+
+    private var TwitchWs: WebSocket? = null
+    private var TwitchWsAttempt: Int = 1
+    private var pingTimer = Timer("pingTimer", true)
+    private var viewers: String = "0"
 
     private var ws: WebSocket? = null
     private var wsAttempt: Int = 1
@@ -160,7 +181,18 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
     private var show: Animation? = null
     private var hide: Animation? = null
 
+    private var slideUpIn: Animation? = null
+    private var slideUpOut: Animation? = null
+    private var slideDownIn: Animation? = null
+    private var slideDownOut: Animation? = null
+
     private var audioCapabilitiesReceiver: AudioCapabilitiesReceiver? = null
+
+    private var eventLogger = EventLogger()
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss",
+            Resources.getSystem().configuration.locale)
+    private var blockedID3 = false
+    private var streamDelay = 0
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -171,11 +203,17 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
+        dateFormat.timeZone = TimeZone.getTimeZone("UTC")
 
 
         if (savedInstanceState != null) {
             Logger.i("savedInstanceState not null, restoring")
-            channel = savedInstanceState.getParcelable("channel")
+            stream = savedInstanceState.getParcelable("stream")
+            if (stream.channel().name().isNotEmpty()) {
+                channel = stream.channel()
+            } else {
+                channel = savedInstanceState.getParcelable("channel")
+            }
             chatRoom = savedInstanceState.getString("chatRoom")
             chatOnly = savedInstanceState.getBoolean("chatOnly")
             VoD = savedInstanceState.getBoolean("VoD")
@@ -187,12 +225,21 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         } else {
             contentUri = intent.data
             Logger.i("Current contentUri: %s", contentUri)
-            channel = intent.getParcelableExtra("channel")
+            stream = intent.getParcelableExtra("stream")
+            if (stream.channel().name().isNotEmpty()) {
+                channel = stream.channel()
+            } else {
+                channel = intent.getParcelableExtra("channel")
+            }
             chatRoom = intent.getStringExtra("chatRoom")
             val loadChannel = intent.getBooleanExtra("loadChannel", false)
             if (loadChannel) {
                 // Incomplete channel data, get the full channel data
-                getChannel(channel.name())
+                getChannel(channel.id().toString())
+            }
+            isMarathon = intent.getBooleanExtra("isMarathon", false)
+            if (isMarathon) {
+                horaroID = intent.getStringExtra("horaroID")
             }
             chatOnly = intent.getBooleanExtra("chatOnly", false)
             VoD = intent.getBooleanExtra("VoD", false)
@@ -250,13 +297,22 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
             CookieHandler.setDefault(defaultCookieManager)
         }
 
+        if (channel.updated_at() == null) {
+            if (channel.id() == 0L) {
+                // Invalid Channel ID, finish activity instead
+                finish()
+                return
+            }
+            // Empty channel object, request current channel
+            getChannel(channel.id().toString())
+        }
         if (channel.partner()) {
             // Partnered channels can have no Subscribe button, let's check it
             checkProduct()
         }
 
         initPreferences()
-        getHostStatus()
+        getHostStatus(false)
         initPlayerUI()
         initDescriptionUI()
         initViewerListUI()
@@ -265,11 +321,13 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         if (!chatOnly) {
             setupTopController()
             setFollowButtons(null)
-            connectWebSocket()
+            connectWebSocket(false)
+            connectTwitchWebSocket()
             button_srl.setOnClickListener { showRaceEntrantsDialog() }
             if (BuildConfig.DEBUG) {
                 //handelSRL(srlJsonOpen)
             }
+            /*
             if (channel.name() == "gamesdonequick"
                     || channel.name() == "speedrunsespanol" || channel.name() == "germenchrestream"
                     || channel.name() == "lefrenchrestream" || channel.name() == "goldensplit" ) {
@@ -286,9 +344,83 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                         getGDQSchedule()
                     }
                 }
+            } */
+            if (isMarathon) {
+                Timer("schedule", true).schedule(5000) {
+                    runOnUiThread {
+                        Snackbar.make(chatContainer, "Marathon Schedule available", Snackbar.LENGTH_LONG).show()
+                        controller?.show()
+                    }
+                }
+                button_schedule.visibility = VISIBLE
+                button_schedule.setOnClickListener {
+                    if (!blockCall) {
+                        blockCall = true
+                        getHoraroSchedule(horaroID)
+                    }
+                }
             }
         }
         setChannelDescription()
+        getChannelCommunity()
+        //getChatters()
+        if (!chatOnly) {
+            viewers = stream.viewers().toString()
+            controller_viewCount.setCurrentText(viewers)
+            slideUpIn = AnimationUtils.loadAnimation(this, R.anim.slide_up_in)
+            slideUpOut = AnimationUtils.loadAnimation(this, R.anim.slide_up_out)
+            slideDownIn = AnimationUtils.loadAnimation(this, R.anim.slide_down_in)
+            slideDownOut = AnimationUtils.loadAnimation(this, R.anim.slide_down_out)
+            controller_viewCount.inAnimation = slideDownIn
+            controller_viewCount.outAnimation = slideDownOut
+            uptimeTimer = Timer("uptimeTimer", true)
+            controller_uptime.inAnimation = slideUpIn
+            controller_uptime.outAnimation = slideUpOut
+            uptimeTimer.scheduleAtFixedRate(0, 60010, {
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'",
+                        Resources.getSystem().configuration.locale)
+                dateFormat.timeZone = TimeZone.getTimeZone("UTC")
+                val currentTime = Calendar.getInstance()
+                val date = dateFormat.parse(stream.created_at())
+                val seconds = (currentTime.time.time - date.time) / 1000
+                runOnUiThread {
+                    controller_uptime.setText(String.format("%02d:%02d", seconds / 3600,
+                            (seconds - seconds / 3600 * 3600) / 60))
+                }
+            })
+        }
+    }
+
+    /*
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (isTablet) {
+            return
+        }
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE ||
+                newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            controller?.doToggleFullscreen(true)
+        }
+    }
+    */
+
+    private fun getHoraroSchedule(id: String) {
+        HoraroAPI.getService().getSchedule(id).enqueue(object : Callback<ScheduleData> {
+            override fun onResponse(call: Call<ScheduleData>, response: Response<ScheduleData>) {
+                if (response.code() == 200) {
+                    showScheduleDialog(response.body())
+                } else {
+                    toast("Couldn't get Schedule, try again in a few")
+                }
+                blockCall = false
+            }
+
+            override fun onFailure(call: Call<ScheduleData>, t: Throwable) {
+                Log.d("Horaro Failure", t.message)
+                toast("Couldn't get Schedule, try again in a few")
+                blockCall = false
+            }
+        })
     }
 
     private fun getGDQSchedule() {
@@ -310,85 +442,148 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         })
     }
 
-    fun setupTopController() {
-            btn_quality.setOnClickListener({
-                //view -> showVideoPopup(view)
-                if (hasVideoTracks()) {
-                    if (productExists) {
-                        val btm : BottomSheet.Builder
-                        if (darkMode) {
-                            btm = BottomSheet.Builder(this, R.style.BottomSheet_CustomDarkTheme)
-                                    .title("Options")
-                                    .sheet(R.menu.sheet_player)
-                        } else {
-                            btm = BottomSheet.Builder(this)
-                                    .title("Options")
-                                    .sheet(R.menu.sheet_player)
+    private fun getChannelCommunity() {
+        if (stream.community() != null) {
+            if (checkCommunity(stream.community())) {
+                Log.d("ChannelCommunity", "Speedrunning Community (without reload)")
+                getSRCData()
+            } else if (stream.community() == "e7912cf2-1f61-46bd-91f8-9187fde84971") {
+                // Fangames - IWBTG fangames for now
+                if (channel.game() == "I Wanna Be The Guy") {
+
+                }
+            }
+        } else {
+            TwitchKraken.getService().getChannelCommunity(channel.id().toString()).enqueue(object : Callback<ChannelCommunity> {
+                override fun onResponse(call: Call<ChannelCommunity>, response: Response<ChannelCommunity>) {
+                    Log.d("ChannelCommunity", "response: " + response.code() + " id: " + channel.id().toString())
+                    if (response.code() == 200) {
+                        Log.d("ChannelCommunity", "checking community")
+                        if (checkCommunity(response.body().id())) {
+                            Log.d("ChannelCommunity", "Speedrunning Community")
+                            getSRCData()
                         }
-                        btm.listener({ p0, p1 ->
-                            when (p1) {
-                                R.id.player_source -> changeQuality(true, 1)
-                                R.id.player_high -> changeQuality(true, 2)
-                                R.id.player_medium -> changeQuality(true, 3)
-                                R.id.player_low -> changeQuality(true, 4)
-                                R.id.player_mobile -> changeQuality(true, 5)
-                                R.id.player_subscribe -> openSubscribeSite()
-                                R.id.player_share -> shareChannel()
-                                R.id.chatRooms -> requestChatRooms()
-                                R.id.hostChannel -> hostChannel()
-                                R.id.unhostChannel -> unhostChannel()
-                            }
-                        })
-                        if (currentlyHosting != null && currentlyHosting.equals(channel.name())) {
-                            btm.sheet(R.id.unhostChannel, formatHostString())
-                        } else {
-                            btm.sheet(R.id.hostChannel, formatHostString())
-                        }
-                        btm.show()
-                    } else {
-                        val btm : BottomSheet.Builder
-                        if (darkMode) {
-                            btm = BottomSheet.Builder(this, R.style.BottomSheet_CustomDarkTheme)
-                                    .title("Options")
-                                    .sheet(R.menu.sheet_player)
-                        } else {
-                            btm = BottomSheet.Builder(this)
-                                    .title("Options")
-                                    .sheet(R.menu.sheet_player)
-                        }
-                        btm.listener({ p0, p1 ->
-                            when (p1) {
-                                R.id.player_source -> changeQuality(true, 1)
-                                R.id.player_high -> changeQuality(true, 2)
-                                R.id.player_medium -> changeQuality(true, 3)
-                                R.id.player_low -> changeQuality(true, 4)
-                                R.id.player_mobile -> changeQuality(true, 5)
-                                R.id.player_share -> shareChannel()
-                                R.id.chatRooms -> requestChatRooms()
-                                R.id.hostChannel -> hostChannel()
-                                R.id.unhostChannel -> unhostChannel()
-                            }
-                        })
-                        if (currentlyHosting != null && currentlyHosting.equals(channel.name())) {
-                            btm.sheet(R.id.unhostChannel, formatHostString())
-                        } else {
-                            btm.sheet(R.id.hostChannel, formatHostString())
-                        }
-                        btm.show()
                     }
+                }
+
+                override fun onFailure(call: Call<ChannelCommunity>, t: Throwable) {
+                    Log.d("ChannelCommunity Fail", t.message)
+                }
+            })
+        }
+    }
+
+    private fun checkCommunity(community: String?): Boolean {
+        if (community == null) {
+            return false
+        }
+        val prefs = getSharedPreferences(Constants.SETTINGS, Context.MODE_PRIVATE)
+        val ids = prefs.getString(Constants.LEADERBOARDS_ENABLED, "").split(",")
+        ids.forEach {
+            if (it == community) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun getSRCData() {
+        SpeedrunCom.getService().getGame(channel.game()).enqueue(object : Callback<SRCGame> {
+            override fun onResponse(call: Call<SRCGame>, response: Response<SRCGame>) {
+                if (response.code() == 200) {
+                    if (response.body().data().isNotEmpty()) {
+                        val game = response.body().data()[0]
+                        Log.d("SRC API", "Game ID: " + game.id())
+                        SpeedrunCom.getService().getRecords(game.id()).enqueue(object : Callback<Record> {
+                            override fun onResponse(call: Call<Record>, response: Response<Record>) {
+                                if (response.code() == 200) {
+                                    val records = response.body().data()
+                                    for (record in records) {
+                                        Log.d("SRC API", "Record: " + record.toString())
+                                    }
+                                    recordData = records
+                                    button_srcom.visibility = VISIBLE
+                                    button_srcom.setOnClickListener { showSRCDialog() }
+                                }
+                            }
+
+                            override fun onFailure(call: Call<Record>, t: Throwable) {
+                                Log.d("SRC API", "onFailure: " + t.message)
+                            }
+                        })
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call<SRCGame>, t: Throwable) {
+                Log.d("SRC API", "onFailure: " + t.message)
+            }
+        })
+    }
+
+    fun setupTopController() {
+        updateOptionSheet()
+        btn_viewer_list.setOnClickListener {
+            drawerLayout.openDrawer(Gravity.LEFT)
+            controller?.hide()
+        }
+        btn_info.setOnClickListener {
+            drawerLayout.openDrawer(Gravity.RIGHT)
+            controller?.hide()
+        }
+    }
+
+    fun updateOptionSheet() {
+        btn_quality.setOnClickListener({
+            //view -> showVideoPopup(view)
+            if (hasVideoTracks()) {
+                if (productExists) {
+                    val btm : BottomSheet.Builder
+                    if (darkMode) {
+                        btm = BottomSheet.Builder(this, R.style.BottomSheet_CustomDarkTheme)
+                    } else {
+                        btm = BottomSheet.Builder(this)
+                    }
+                    btm.title("Options")
+                    btm.sheet(R.menu.sheet_player_with_subscribe)
+                    btm.listener({ p0, p1 ->
+                        when (p1) {
+                            R.id.changeQuality -> openQualitySheet()
+                            R.id.player_source -> changeQuality(true, 1)
+                            R.id.player_high -> changeQuality(true, 2)
+                            R.id.player_medium -> changeQuality(true, 3)
+                            R.id.player_low -> changeQuality(true, 4)
+                            R.id.player_mobile -> changeQuality(true, 5)
+                            R.id.player_subscribe -> openSubscribeSite()
+                            R.id.player_share -> shareChannel()
+                            R.id.chatRooms -> requestChatRooms()
+                            R.id.hostChannel -> hostChannel()
+                            R.id.unhostChannel -> unhostChannel()
+                        }
+                    })
+                    if (currentlyHosting != null && currentlyHosting.equals(channel.name())) {
+                        btm.sheet(R.id.unhostChannel, formatHostString())
+                    } else {
+                        btm.sheet(R.id.hostChannel, formatHostString())
+                    }
+                    btm.show()
                 } else {
                     val btm : BottomSheet.Builder
                     if (darkMode) {
                         btm = BottomSheet.Builder(this, R.style.BottomSheet_CustomDarkTheme)
-                                .title("Options")
-                                .sheet(R.menu.sheet_player)
                     } else {
                         btm = BottomSheet.Builder(this)
-                                .title("Options")
-                                .sheet(R.menu.sheet_player)
                     }
+                    btm.title("Options")
+                    btm.sheet(R.menu.sheet_player)
                     btm.listener({ p0, p1 ->
                         when (p1) {
+                            R.id.changeQuality -> openQualitySheet()
+                            R.id.player_source -> changeQuality(true, 1)
+                            R.id.player_high -> changeQuality(true, 2)
+                            R.id.player_medium -> changeQuality(true, 3)
+                            R.id.player_low -> changeQuality(true, 4)
+                            R.id.player_mobile -> changeQuality(true, 5)
                             R.id.player_share -> shareChannel()
                             R.id.chatRooms -> requestChatRooms()
                             R.id.hostChannel -> hostChannel()
@@ -402,19 +597,67 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                     }
                     btm.show()
                 }
-            })
-
-            btn_viewer_list.setOnClickListener {
-                drawerLayout.openDrawer(Gravity.LEFT)
-                controller?.hide()
+            } else {
+                val btm : BottomSheet.Builder
+                if (darkMode) {
+                    btm = BottomSheet.Builder(this, R.style.BottomSheet_CustomDarkTheme)
+                            .title("Options")
+                            .sheet(R.menu.sheet_player_noquality)
+                } else {
+                    btm = BottomSheet.Builder(this)
+                            .title("Options")
+                            .sheet(R.menu.sheet_player_noquality)
+                }
+                btm.listener({ p0, p1 ->
+                    when (p1) {
+                        R.id.player_share -> shareChannel()
+                        R.id.chatRooms -> requestChatRooms()
+                        R.id.hostChannel -> hostChannel()
+                        R.id.unhostChannel -> unhostChannel()
+                    }
+                })
+                if (currentlyHosting != null && currentlyHosting.equals(channel.name())) {
+                    btm.sheet(R.id.unhostChannel, formatHostString())
+                } else {
+                    btm.sheet(R.id.hostChannel, formatHostString())
+                }
+                btm.show()
             }
-
-            btn_info.setOnClickListener {
-                drawerLayout.openDrawer(Gravity.RIGHT)
-                controller?.hide()
-            }
+        })
     }
 
+    fun openQualitySheet() {
+        val btm : BottomSheet.Builder
+        if (darkMode) {
+            btm = BottomSheet.Builder(this, R.style.BottomSheet_CustomDarkTheme)
+                    .title("Choose Quality Option")
+        } else {
+            btm = BottomSheet.Builder(this)
+                    .title("Choose Quality Option")
+        }
+        //var newFormat = false
+        //var once = true
+        var ids = 1
+        player?.tracks?.forEach {
+            if (it.contains("(source)")) {
+                /*
+                newFormat = true
+                if (newFormat && once) {
+                    ids = 1
+                    once = false
+                } */
+                btm.sheet(ids, "Source" + " (" + buildBitrateString(player?.getTrackFormat(Player.TYPE_VIDEO, ids)) + ")")
+                ids++
+            } else if (!it.contains("audio_only") || !it.contains("audio") || !it.contains ("Audio Only")) {
+                btm.sheet(ids, it + " (" + buildBitrateString(player?.getTrackFormat(Player.TYPE_VIDEO, ids)) + ")")
+                ids++
+            }
+        }
+        btm.listener { dialog, which ->
+            changeQuality(true, which)
+        }
+        btm.show()
+    }
 
     //TODO Finish Tab completion
     /*
@@ -432,18 +675,23 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
     */
 
     fun hostChannel() {
-        if (login.equals(Constants.NO_USER)) {
+        if (login == Constants.NO_USER) {
             return
         }
         chat?.loadUrl("javascript:(function (){host('${login}', '${channel.name()}')}());")
+        currentlyHosting = channel.name()
+        currentlyHostingDisplayName = channel.displayName()
+        updateOptionSheet()
     }
 
     fun unhostChannel() {
-        if (login.equals(Constants.NO_USER)) {
+        if (login == Constants.NO_USER) {
             return
         }
         chat?.loadUrl("javascript:(function (){unhostChannel('${login}')}());")
         currentlyHosting = null
+        currentlyHostingDisplayName = null
+        updateOptionSheet()
     }
 
     fun requestChatRooms() {
@@ -587,16 +835,24 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
 
             override fun onDrawerOpened(drawerView: View) {
                 if (drawerView.id == R.id.viewerListDrawer) {
-                    loadViewerList()
+                    val adapter = viewerRecyclerView.adapter
+                    if (adapter == null) {
+                        loadViewerList()
+                    } else {
+                        val lastUpdate = (adapter as ChatterAdapter).lastUpdate
+                        val seconds = (System.currentTimeMillis() - lastUpdate) / 1000
+                        val delta = (seconds - seconds / 3600 * 3600) / 60
+                        if (delta > 3) {
+                            loadViewerList()
+                        }
+                    }
                 }
             }
 
             override fun onDrawerClosed(drawerView: View) {
-
             }
 
             override fun onDrawerStateChanged(newState: Int) {
-
             }
         })
 
@@ -612,7 +868,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
 
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
 
-                if (!url.equals("https://www.twitch.tv/${login}/chat")) {
+                if (!url.equals("https://www.twitch.tv/${chatRoom}/chat")) {
                     if (url.startsWith("http:") || url.startsWith("https:")) {
                         Logger.i("URL Override %s", url)
                         Logger.i("URL Override is YouTube: %b", url.contains("youtube.com"))
@@ -668,25 +924,12 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
 
     fun initViewerListUI() {
         viewerListReload.setOnClickListener { loadViewerList() }
-        var html = ""
-        html += "<html>" +
-                "<head>" +
-                "<style>html{color: #8c8c9c; background: #25252A;}  " +
-                "img{ max-width:100%; height:auto; } " +
-                "a { color: #AB81F9; font-size: 100%; text-decoration: none; } .list-header { font-size: 18px; margin-top: 20px; } .item { color: #a68ed2; }" +
-                "</style>" +
-                "<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'>" +
-                "</head>" +
-                "<body>"
-        html += "</body></html>"
-        webViewViewerList.settings.domStorageEnabled = true
-        webViewViewerList.settings.javaScriptEnabled = true
-        webViewViewerList.loadData(html, "text/html; charset=UTF-8", null)
     }
 
     fun loadViewerList() {
         //todo renew this
         //TDTaskManager.executeTask(ViewerListCallback(this, channel))
+        getChatters()
         viewerListReload.visibility = GONE
         viewerListLoading.visibility = VISIBLE
     }
@@ -818,7 +1061,11 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
             chat?.setWebViewClient(webViewClient)
             // Change chat room if we're in a different chat
             if (StrimBagZApplication.previousChat != StrimBagZApplication.currentChat) {
-                chat?.post { chat?.loadUrl("javascript:(function (){strimBagInterface.changeChannel(strimBagInterface.oldChannel(),strimBagInterface.channel())}());") }
+                chat?.post { chat?.loadUrl("javascript:(function (){sbzChangeCurrentChannel(strimBagInterface.oldChannel(),strimBagInterface.channel())}());") }
+            }
+            // First time starting the chat, join the currently watched stream now
+            if (StrimBagZApplication.previousChat == "") {
+
             }
         }
 
@@ -896,7 +1143,6 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
             // Support for Android N's Multi-Window mode
             return
         }
-
         if (!chatOnly) {
             if (!streamFirstLoaded) {
                 // Renew stream url
@@ -923,6 +1169,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
     fun videoIsLoading(isLoading: Boolean) {
         if (isLoading) {
             surface_error.visibility = VISIBLE
+            surface_text.visibility = GONE
             surface_progress.visibility = VISIBLE
         } else {
             surface_progress.visibility = GONE
@@ -937,6 +1184,9 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
             return
         }
         if (!chatOnly) {
+            if (!chatOnly) {
+                player?.resetTracks()
+            }
             if (!enableBackgroundAudio) {
                 releasePlayer()
             } else {
@@ -1015,6 +1265,13 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
             }
         }
 
+    override fun onStop() {
+        super.onStop()
+        if (!chatOnly) {
+            player?.resetTracks()
+        }
+    }
+
     public override fun onDestroy() {
         super.onDestroy()
         StrimBagZApplication.previousChat = channel.name()
@@ -1023,6 +1280,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                     .baseContext = applicationContext
         }
         if (!chatOnly) {
+            player?.resetTracks()
             audioCapabilitiesReceiver?.unregister()
             releasePlayer()
         }
@@ -1030,6 +1288,9 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         notificationManager.cancel(42069)
         if (ws != null) {
             ws?.disconnect()
+        }
+        if (TwitchWs != null) {
+            TwitchWs?.disconnect()
         }
         chat?.removeAllViews()
         chat?.removeAllViewsInLayout()
@@ -1055,7 +1316,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
 
     // Internal methods
 
-    private val rendererBuilder: Player.RendererBuilder
+    private val rendererBuilder: HlsRendererBuilder
         get() {
             //val userAgent = Util.getUserAgent(this, "StrimBagZ")
             val userAgent = "TwitchExoPlayer/4.16.0" + " (Linux;Android " + Build.VERSION.RELEASE +") " + "ExoPlayerLib/1.3.3"
@@ -1073,6 +1334,9 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
             playerNeedsPrepare = true
             //controller?.setMediaPlayer(player?.playerControl)
             //controller?.isEnabled = true
+            eventLogger.startSession()
+            player?.setInfoListener(eventLogger)
+            player?.setMetadataListener(this)
         }
         if (playerNeedsPrepare) {
             player?.prepare()
@@ -1081,6 +1345,9 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
 
         player?.surface = videoSurface.holder.surface
         player?.playWhenReady = playWhenReady
+        player?.tracks?.forEach {
+            Log.d("playlist tracks", "track: " + it)
+        }
     }
 
     private fun releasePlayer() {
@@ -1098,7 +1365,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
             "high" -> this.quality = 2
             "medium" -> this.quality = 3
             "low" -> this.quality = 4
-            "mobile" -> this.quality = 5
+            "mobile" -> this.quality = 4
             else -> this.quality = 0
         }
     }
@@ -1111,6 +1378,8 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         if (setNewDefault && newQuality != null) {
             this.quality = newQuality
         }
+        player?.setSelectedTrack(Player.TYPE_VIDEO, quality)
+        /*
         when (quality) {
             0 -> // Auto
                 player?.setSelectedTrack(Player.TYPE_VIDEO, 0)
@@ -1125,6 +1394,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
             5 -> // Mobile
                 player?.setSelectedTrack(Player.TYPE_VIDEO, 5)
         }
+        */
     }
 
     override fun onStateChanged(playWhenReady: Boolean, playbackState: Int) {
@@ -1149,6 +1419,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                 surface_text.visibility = VISIBLE
                 surface_progress.visibility = GONE
                 surface_text.setText(R.string.stream_went_offline)
+                playerNeedsPrepare = true
                 window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
             ExoPlayer.STATE_IDLE -> Log.d("Player onStateChanged", "Stream idle")
@@ -1158,6 +1429,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                 if (surface_error.visibility == VISIBLE) {
                     videoIsLoading(false)
                 }
+                Log.d("bandwidthMeter", "estimate " + player?.bandwidthMeter?.bitrateEstimate)
             }
             else -> Log.d("Player onStateChanged", "Stream unknown")
         }
@@ -1432,6 +1704,47 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
 
     // Callbacks
 
+    private fun getChatters() {
+        var url = Constants.URL_TMI_CHATTERS
+        url = url.replace("{channel}", channel.name())
+        url += "?_=" + Calendar.getInstance().timeInMillis
+        TwitchAPI.getService()
+                .getChatters(url).enqueue(object : Callback<Chatter> {
+            override fun onResponse(call: Call<Chatter>, response: Response<Chatter>) {
+                val chatters = response.body()
+                runOnUiThread {
+                    val adapter = viewerRecyclerView.adapter
+                    if (adapter == null) {
+                        viewerRecyclerView.layoutManager = LinearLayoutManager(this@PlayerActivity)
+                        if (chatters.count() < 1000) {
+                            viewerRecyclerView.adapter = ChatterAdapter(chatters.chatters(), channel.name())
+                        } else {
+                            viewerRecyclerView.adapter = ChatterAdapter(channel.name())
+                        }
+                    } else {
+                        if (chatters.count() < 1000) {
+                            (viewerRecyclerView.adapter as ChatterAdapter).renewList(chatters.chatters())
+                        } else {
+                            (viewerRecyclerView.adapter as ChatterAdapter).setTooManyChatters()
+                        }
+                    }
+                    (viewerRecyclerView.adapter as ChatterAdapter).setLastUpdate()
+                    chatterCounter.text = chatters.count().toString()
+                    viewerListLoading.visibility = INVISIBLE
+                    viewerListReload.visibility = VISIBLE
+                }
+            }
+
+            override fun onFailure(call: Call<Chatter>, t: Throwable) {
+                Log.d("getChatters", "Failure: " + t.message)
+                runOnUiThread {
+                    viewerListLoading.visibility = INVISIBLE
+                    viewerListReload.visibility = VISIBLE
+                }
+            }
+        })
+    }
+
     /*
 
     inner class ViewerListCallback
@@ -1562,7 +1875,6 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
 
             }
         })
-
     }
 
     fun getStreamURI(channel: String, play: Boolean) {
@@ -1573,7 +1885,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                     val url = "https://usher.ttvnw.net/api/channel/hls/$channel.m3u8"
                     val uri = Uri.parse(url)
                             .buildUpon()
-                            .appendQueryParameter("allow_audio_only", "false")
+                            //.appendQueryParameter("allow_audio_only", "false")
                             .appendQueryParameter("token", token.token())
                             .appendQueryParameter("sig", token.sig())
                             .appendQueryParameter("allow_source", "true")
@@ -1593,7 +1905,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         })
     }
 
-    fun getHostStatus() {
+    fun getHostStatus(updateSheet : Boolean) {
         TwitchAPI.getService().getHostingStatus(Constants.URL_HOST + twitchID)
                 .enqueue(object : Callback<Hosts> {
             override fun onResponse(call: Call<Hosts>?, response: Response<Hosts>) {
@@ -1616,6 +1928,9 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                 Log.d("Hosting", t.message)
             }
         })
+        if (updateSheet) {
+            updateOptionSheet()
+        }
     }
 
     fun formatHostString(): String {
@@ -1801,13 +2116,21 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         fun changeChannel(old: String, c: String) {
             Log.d("changeChannel", "Old: $old New: $c")
             chat?.post { chat?.loadUrl("javascript:(function (){" +
-                    "var controller = App.__container__.lookup('controller:chat');" +
-                    " var Room = App.__deprecatedInstance__.registry.resolve('model:room');" +
-                    " if ( ! ffz.rooms['$c'] || ! ffz.rooms['$c'].room ) {" +
-                    " Room.findOne('$c')" +
+                    "var Chat = FrankerFaceZ.utils.ember_lookup('controller:chat');" +
+                    " var Room = FrankerFaceZ.utils.ember_resolve('model:room');" +
+                    " var user = ffz.get_user();" +
+                    " if ( Chat.get('currentRoom.id') === '$old' ) {" +
+                    " Chat.blurRoom();" +
                     " }" +
-                    " controller.focusRoom(ffz.rooms['$c'].room);" +
-                    " ffz._leave_room('$old')" +
+                    " if ( ! ffz.rooms['$c'] || ! ffz.rooms['$c'].room ) {" +
+                    " Room.findOne('$c');" +
+                    " }" +
+                    " Chat.focusRoom(ffz.rooms['$c'].room);" +
+                    " if ( ffz.settings.pinned_rooms.indexOf('$old') == -1 ) {" +
+                    " if ( ! user || user.login !== '$old' ) {" +
+                    " ffz.rooms['$old'].room.destroy();" +
+                    " }" +
+                    " }" +
                     "}());") }
         }
     }
@@ -1864,7 +2187,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                     buildBitrateString(format)), buildTrackIdString(format));
         }
         */
-            return if (trackName.length == 0) "unknown" else trackName
+            return if (trackName.isEmpty()) "unknown" else trackName
         }
 
         private fun buildResolutionString(format: MediaFormat): String {
@@ -1888,7 +2211,10 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                 format.language
         }
 
-        private fun buildBitrateString(format: MediaFormat): String {
+        private fun buildBitrateString(format: MediaFormat?): String {
+            if (format == null) {
+                return ""
+            }
             return if (format.bitrate == MediaFormat.NO_VALUE)
                 ""
             else
@@ -1913,12 +2239,14 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         )
     }
 
-    fun connectWebSocket() {
+    fun connectWebSocket(twitch : Boolean) {
         val servers = getServers()
-        var server = servers[ThreadLocalRandom.current().nextInt(servers.size)]
+        val server = servers[ThreadLocalRandom.current().nextInt(servers.size)]
+        /*
         if (BuildConfig.DEBUG) {
             server = "catbag.frankerfacez.com"
         }
+        */
         Log.d("WebSocket", server)
         try {
             ws = WebSocketFactory().createSocket("wss://$server/", 5000)
@@ -2059,7 +2387,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         val timer = Timer("schedule", true)
         val delay = ((wsAttempt * 8) * 1000).toLong()
         timer.schedule(delay) {
-            connectWebSocket()
+            connectWebSocket(false)
         }
         Log.d("WebSocket", "Connection failed, try to reconnect")
     }
@@ -2132,8 +2460,6 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         }
 
         raceEntrants.sortBy { it.place() }
-        raceGame = data.getString("game")
-        raceGoal = data.getString("goal")
         try {
             raceStartTime = data.getLong("time")
         } catch (e: JSONException) {
@@ -2142,6 +2468,16 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         runOnUiThread {
             button_srl.visibility = VISIBLE
         }
+        if (raceGame.isEmpty()) {
+            Timer("srlRace", true).schedule(3000) {
+                runOnUiThread {
+                    Snackbar.make(chatContainer, "SRL Race Information available.", Snackbar.LENGTH_LONG).show()
+                    controller?.show()
+                }
+            }
+        }
+        raceGame = data.getString("game")
+        raceGoal = data.getString("goal")
         Log.d("srl race", "button enabled, onclick listner too")
         Logger.d(raceEntrants)
     }
@@ -2152,9 +2488,20 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
         raceFragment.show(supportFragmentManager, "dialog_srl")
     }
 
+    private fun showSRCDialog() {
+        val leaderboardFragment = LeaderboardDialog.newInstance(channel.game(), recordData)
+        leaderboardFragment.show(supportFragmentManager, "dialog_leaderboard")
+    }
+
     private fun showScheduleDialog(runs: List<Run>) {
         val scheduleFragment = ScheduleDialog.newInstance("Awesome Games Done Quick 2017",
                 "Sunday, January 8th - Sunday, January 15th", runs)
+        scheduleFragment.show(supportFragmentManager, "dialog_schedule")
+    }
+
+    private fun showScheduleDialog(schedule: ScheduleData) {
+        val scheduleFragment = ScheduleDialog.newInstance(schedule.data().name(),
+                "", schedule)
         scheduleFragment.show(supportFragmentManager, "dialog_schedule")
     }
 
@@ -2205,6 +2552,144 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
 
             pop.show()
         }
+    }
+
+    // Twitch WebSocket
+
+    fun connectTwitchWebSocket() {
+        try {
+            TwitchWs = WebSocketFactory().createSocket("wss://pubsub-edge.twitch.tv/", 5000)
+                    .setMaxPayloadSize(2048)
+                    .addExtension(WebSocketExtension.PERMESSAGE_DEFLATE)
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+
+        if (TwitchWs != null) {
+            TwitchWs!!.addListener(object : WebSocketAdapter() {
+                @Throws(Exception::class)
+                override fun onConnected(websocket: WebSocket, headers: Map<String, List<String>>?) {
+                    super.onConnected(websocket, headers)
+                    Log.d("TwitchWebSocket", "Connected.")
+                    TwitchWsAttempt = 1
+                    //sendPingTwitchWS(websocket)
+                    pingTimer = Timer("pingTimer", true)
+                    pingTimer.scheduleAtFixedRate(0, 150000, {
+                        if (TwitchWs != null && TwitchWs!!.isOpen) {
+                            Log.d("TwitchWebSocket", "sending ping")
+                            sendPingTwitchWS(websocket)
+                        } else {
+                            Log.d("TwitchWebSocket", "WS either null or disconnected")
+                            pingTimer.cancel()
+                        }
+                    })
+                    listenVideoPlayback(websocket, channel.id().toString())
+                }
+
+                @Throws(Exception::class)
+                override fun onError(websocket: WebSocket?, cause: WebSocketException) {
+                    super.onError(websocket, cause)
+                    Log.d("TwitchWebSocket", "onError")
+                    Log.d("TwitchWebSocket", cause.message)
+                    pingTimer.cancel()
+                }
+
+                @Throws(Exception::class)
+                override fun onUnexpectedError(websocket: WebSocket?, cause: WebSocketException?) {
+                    super.onUnexpectedError(websocket, cause)
+                    Log.d("TwitchWebSocket", "onUnexpectedError")
+                    Log.d("TwitchWebSocket", cause!!.message)
+                    pingTimer.cancel()
+                }
+
+                @Throws(Exception::class)
+                override fun onTextMessage(websocket: WebSocket, text: String) {
+                    super.onTextMessage(websocket, text)
+                    var text = text
+                    Log.d("onText Twitch", text)
+                    val obj = JSONObject(text)
+                    val type = obj.get("type")
+                    if (type == "MESSAGE") {
+                        val data = obj.getJSONObject("data")
+                        val msg = JSONObject(data.get("message") as String)
+                        val msgType = msg.get("type")
+                        if (msgType == "viewcount") {
+                            if (streamUp) {
+
+                            }
+                            val v = msg.get("viewers")
+                            //Log.d("TwitchWebSocket", "Viewers updated " + viewers)
+                            if (viewers == v.toString()) {
+                                return
+                            }
+                            val oldViewers = viewers.toLong()
+                            val newViewers = v.toString().toLong()
+                            viewers = v.toString()
+                            runOnUiThread {
+                                if (oldViewers < newViewers) {
+                                    controller_viewCount.inAnimation = slideUpIn
+                                    controller_viewCount.outAnimation = slideUpOut
+                                } else {
+                                    controller_viewCount.inAnimation = slideDownIn
+                                    controller_viewCount.outAnimation = slideDownOut
+                                }
+                                controller_viewCount.setText(viewers)
+                            }
+                        } else if (msgType == "stream-up") {
+                            runOnUiThread {
+                                getStreamURI(channel.name(), true)
+                                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                            }
+                        } else if (msgType == "stream-down") {
+                            streamUp = false
+                        }
+                    }
+                }
+
+                @Throws(Exception::class)
+                override fun onMessageError(websocket: WebSocket?, cause: WebSocketException?, frames: List<WebSocketFrame>?) {
+                    super.onMessageError(websocket, cause, frames)
+                    Log.d("TwitchWebSocket", "onMsgError")
+                    Log.d("TwitchWebSocket", cause!!.message)
+                }
+
+                @Throws(Exception::class)
+                override fun onConnectError(websocket: WebSocket?, exception: WebSocketException?) {
+                    super.onConnectError(websocket, exception)
+                    Log.d("TwitchWebSocket", "onConnectError")
+                    //reconnect()
+                }
+
+                @Throws(Exception::class)
+                override fun onDisconnected(websocket: WebSocket?, serverCloseFrame: WebSocketFrame?, clientCloseFrame: WebSocketFrame?, closedByServer: Boolean) {
+                    super.onDisconnected(websocket, serverCloseFrame, clientCloseFrame, closedByServer)
+                    Log.d("TwitchWebSocket", "Disconnected.")
+                    pingTimer.cancel()
+                }
+            })
+        }
+        if (TwitchWs != null) {
+            TwitchWs!!.connectAsynchronously()
+        }
+    }
+
+    private fun sendPingTwitchWS(webSocket: WebSocket) {
+        webSocket.sendText("{\"type\":\"PING\"}")
+    }
+
+    private fun listenVideoPlayback(webSocket: WebSocket, id: String) {
+        val nonce = randomString(30)
+        webSocket.sendText("{\"type\":\"LISTEN\",\"nonce\":\"$nonce\",\"data\":{\"topics\":[\"video-playback-by-id.$id\"]}}")
+    }
+
+    val AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    var rnd = SecureRandom()
+
+    fun randomString(len: Int): String {
+        val sb = StringBuilder(len)
+        for (i in 0..len - 1)
+            sb.append(AB[rnd.nextInt(AB.length)])
+        return sb.toString()
     }
 
     private fun followChannel(target: String?, displayName: String?) {
@@ -2305,20 +2790,21 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                     productExists = false
                     Log.d("checkProduct", "product doesn't exist, subscribe button inactive")
                 }
+                updateOptionSheet()
             }
 
             override fun onFailure(call: Call<Void>, t: Throwable) {
-
             }
 
         })
     }
 
     fun getChannel(ch: String) {
-        TwitchKraken.getService().getChannel(ch).enqueue(object : Callback<Channel> {
-            override fun onResponse(call: Call<Channel>, response: Response<Channel>) {
-                if (response.code() == 200) {
-                    channel = response.body()
+        TwitchKraken.getService().getStreamStatus(ch).enqueue(object : Callback<StreamObject> {
+            override fun onResponse(call: Call<StreamObject>, response: Response<StreamObject>) {
+                if (response.code() == 200 && response.body().stream() != null) {
+                    stream = response.body().stream() as Stream
+                    channel = stream.channel()
                     if (channel.partner()) {
                         checkProduct()
                     }
@@ -2326,7 +2812,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
                 }
             }
 
-            override fun onFailure(call: Call<Channel>, t: Throwable) {
+            override fun onFailure(call: Call<StreamObject>, t: Throwable) {
 
             }
         })
@@ -2359,9 +2845,46 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Aud
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        if (stream != null) {
+            outState.putParcelable("stream", stream)
+        }
         outState.putParcelable("channel", channel)
         outState.putString("chatRoom", chatRoom)
         outState.putBoolean("chatOnly", chatOnly)
         outState.putBoolean("VoD", VoD)
     }
+
+    override fun onId3Metadata(id3Frames: MutableList<Id3Frame>) {
+        if (blockedID3) {
+            return
+        }
+        id3Frames.forEach {
+            val id = it.id
+            Log.d("onId3Metadata", "data: " + id)
+            if (id == "TDEN") {
+                val textInfo = (it as TextInformationFrame)
+                Log.d("onId3Metadata", "TDEN: " + textInfo.description)
+                val currentTime = Calendar.getInstance()
+                val date = dateFormat.parse(textInfo.description)
+                val encodingTime = Calendar.getInstance()
+                encodingTime.timeInMillis = date.time
+                val timeDiff = Utils.computeTimeDiff(encodingTime, currentTime)
+                var diffSec = 0L
+                diffSec = timeDiff!![TimeUnit.SECONDS] as Long
+                Log.d("onId3Metadata", "Latency to Broadcaster: $diffSec seconds")
+                streamDelay = diffSec.toInt()
+                runOnUiThread {
+                    controller_delay.text = "| Latency: ${streamDelay}s"
+                }
+                blockedID3 = true
+                Timer("latencyTimer", false).schedule(30000, {
+                    runOnUiThread {
+                        blockedID3 = false
+                    }
+                })
+                return
+            }
+        }
+    }
+
 }

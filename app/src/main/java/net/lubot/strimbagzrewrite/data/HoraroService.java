@@ -19,6 +19,7 @@
 package net.lubot.strimbagzrewrite.data;
 
 import net.lubot.strimbagzrewrite.data.model.GDQ.Run;
+import net.lubot.strimbagzrewrite.data.model.Horaro.ScheduleData;
 import net.lubot.strimbagzrewrite.data.model.Horaro.Ticker;
 
 import java.util.List;
@@ -29,6 +30,8 @@ import retrofit2.http.Path;
 import retrofit2.http.Url;
 
 public interface HoraroService {
+    @GET("schedules/{id}")
+    Call<ScheduleData> getSchedule(@Path("id") String id);
     @GET("schedules/{id}/ticker")
     Call<Ticker> getTicker(@Path("id") String id);
     @GET

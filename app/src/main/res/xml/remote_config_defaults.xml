@@ -25,11 +25,19 @@
         <value>gamesdonequick</value>
     </entry>
     <entry>
+        <key>marathon_channel_id</key>
+        <value>22510310</value>
+    </entry>
+    <entry>
         <key>enable_meme_mode</key>
         <value>false</value>
     </entry>
     <entry>
         <key>meme_mode_race_placeholder</key>
         <value>https://i.imgur.com/14b3mzX.gif</value>
+    </entry>
+    <entry>
+        <key>leaderboards_enabled_communities</key>
+        <value>6e940c4a-c42f-47d2-af83-0a2c7e47c421,8c3dd3a9-941a-492d-aa9e-737095b290b0</value>
     </entry>
 </defaultsMap>
