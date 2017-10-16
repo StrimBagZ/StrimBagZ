@@ -18,6 +18,18 @@
         android:layout_width="match_parent" />
 
     <TextView
+        android:id="@+id/streamType"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Vodcast"
+        android:visibility="gone"
+        android:background="@drawable/bg_timer"
+        android:textSize="12sp"
+        android:textColor="@android:color/white"
+        android:layout_above="@id/hostingTarget"
+        android:layout_alignStart="@+id/hostingTarget" />
+
+    <TextView
         android:id="@+id/hostingTarget"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

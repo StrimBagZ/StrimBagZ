@@ -28,6 +28,8 @@ public abstract class Community {
     @Json(name = "_id")
     public abstract String id();
     public abstract String name();
+    @Json(name = "display_name")
+    public abstract String displayName();
     public abstract long viewers();
     public abstract long channels();
     @Json(name = "avatar_image_url")

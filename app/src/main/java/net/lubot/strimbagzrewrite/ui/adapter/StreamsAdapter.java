@@ -142,6 +142,9 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
                     .signature(new StringSignature(stream.channel().name() + stream.channel().updated_at()))
                     .into(holder.preview);
         }
+        if (stream.type().equals("watch_party")) {
+            holder.streamType.setVisibility(View.VISIBLE);
+        }
         setAnimation(holder.itemView, position);
     }
 
@@ -171,6 +174,7 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
     public void onViewRecycled(ViewHolder holder) {
         super.onViewRecycled(holder);
         Glide.clear(holder.preview);
+        holder.streamType.setVisibility(View.GONE);
     }
 
     private void setAnimation(View view, int position) {
@@ -187,6 +191,7 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
         private TextView title;
         private TextView nowPlaying;
         private ImageView preview;
+        private TextView streamType;
 
         public ViewHolder(View item) {
             super(item);
@@ -194,6 +199,7 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
             title = (TextView) item.findViewById(R.id.streamTitle);
             nowPlaying = (TextView) item.findViewById(R.id.nowPlaying);
             preview = (ImageView) item.findViewById(R.id.previewImage);
+            streamType = (TextView) item.findViewById(R.id.streamType);
             item.setOnClickListener(this);
             item.setOnCreateContextMenuListener(this);
         }
@@ -211,15 +217,15 @@ public class StreamsAdapter extends RecyclerView.Adapter<StreamsAdapter.ViewHold
         }
 
         private void startPlayerActivity(Stream stream) {
-            Bundle bundle = new Bundle();
-            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, stream.channel().name());
-            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, stream.channel().id() + "");
-            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "stream");
+            //Bundle bundle = new Bundle();
+            //bundle.putString(FirebaseAnalytics.Param.ITEM_ID, stream.channel().name());
+            //bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, stream.channel().id() + "");
+            //bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "stream");
 
-            if (activity instanceof MainActivity) {
-                ((MainActivity) activity)
-                        .trackActivity(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
-            }
+            //if (activity instanceof MainActivity) {
+            //    ((MainActivity) activity)
+            //            .trackActivity(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
+            //}
 
             Utils.startPlayerActivity(activity, stream);
         }

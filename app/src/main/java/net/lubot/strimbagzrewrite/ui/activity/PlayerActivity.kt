@@ -225,17 +225,24 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Pla
         } else {
             contentUri = intent.data
             Logger.i("Current contentUri: %s", contentUri)
-            stream = intent.getParcelableExtra("stream")
+            val tmpStream : Stream? = intent.getParcelableExtra("stream")
+            var loadChannel = intent.getBooleanExtra("loadChannel", false)
+            if (tmpStream != null) {
+                stream = tmpStream
+            } else {
+                loadChannel = true
+            }
             if (stream.channel().name().isNotEmpty()) {
                 channel = stream.channel()
             } else {
                 channel = intent.getParcelableExtra("channel")
             }
             chatRoom = intent.getStringExtra("chatRoom")
-            val loadChannel = intent.getBooleanExtra("loadChannel", false)
             if (loadChannel) {
                 // Incomplete channel data, get the full channel data
-                getChannel(channel.id().toString())
+                if (channel.id() > 0L) {
+                    getChannel(channel.id())
+                }
             }
             isMarathon = intent.getBooleanExtra("isMarathon", false)
             if (isMarathon) {
@@ -298,13 +305,18 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Pla
         }
 
         if (channel.updated_at() == null) {
-            if (channel.id() == 0L) {
+            if (channel.id() == 0L && channel.awfulHostingID() == 0L) {
                 // Invalid Channel ID, finish activity instead
                 finish()
                 return
             }
+            val channelID : Long
+            when {
+                channel.id() == 0L -> channelID = channel.awfulHostingID()
+                else -> channelID = channel.id()
+            }
             // Empty channel object, request current channel
-            getChannel(channel.id().toString())
+            getChannel(channelID)
         }
         if (channel.partner()) {
             // Partnered channels can have no Subscribe button, let's check it
@@ -635,17 +647,9 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Pla
             btm = BottomSheet.Builder(this)
                     .title("Choose Quality Option")
         }
-        //var newFormat = false
-        //var once = true
         var ids = 1
         player?.tracks?.forEach {
             if (it.contains("(source)")) {
-                /*
-                newFormat = true
-                if (newFormat && once) {
-                    ids = 1
-                    once = false
-                } */
                 btm.sheet(ids, "Source" + " (" + buildBitrateString(player?.getTrackFormat(Player.TYPE_VIDEO, ids)) + ")")
                 ids++
             } else if (!it.contains("audio_only") || !it.contains("audio") || !it.contains ("Audio Only")) {
@@ -1359,6 +1363,9 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Pla
     }
 
     private fun determineDefaultQuality(quality: String) {
+        //TODO Remake this feature
+        this.quality = 3
+        /*
         when (quality) {
             "auto" -> this.quality = 0
             "source" -> this.quality = 1
@@ -1368,6 +1375,7 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Pla
             "mobile" -> this.quality = 4
             else -> this.quality = 0
         }
+        */
     }
 
     fun changeQuality(setNewDefault: Boolean) {
@@ -2799,8 +2807,8 @@ class PlayerActivity : CActivity(), SurfaceHolder.Callback, Player.Listener, Pla
         })
     }
 
-    fun getChannel(ch: String) {
-        TwitchKraken.getService().getStreamStatus(ch).enqueue(object : Callback<StreamObject> {
+    fun getChannel(ch: Long) {
+        TwitchKraken.getService().getStreamStatus(ch.toString()).enqueue(object : Callback<StreamObject> {
             override fun onResponse(call: Call<StreamObject>, response: Response<StreamObject>) {
                 if (response.code() == 200 && response.body().stream() != null) {
                     stream = response.body().stream() as Stream

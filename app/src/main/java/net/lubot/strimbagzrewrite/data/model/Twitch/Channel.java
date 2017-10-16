@@ -34,6 +34,8 @@ public abstract class Channel implements Parcelable {
     public abstract String displayName();
     @Json(name = "_id")
     public abstract long id();
+    @Json(name = "id")
+    public abstract long awfulHostingID();
     public abstract String name();
     @Nullable
     public abstract String game();
@@ -51,7 +53,7 @@ public abstract class Channel implements Parcelable {
     public abstract long followers();
 
     public static Channel createEmpty() {
-        return new AutoValue_Channel(null, "", 0, "", null, null, null, null, null, false, 0);
+        return new AutoValue_Channel(null, "", 0, 0, "", null, null, null, null, null, false, 0);
     }
 
     public static JsonAdapter<Channel> jsonAdapter(Moshi moshi) {

@@ -1,22 +1,21 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
-apply plugin: 'android-apt'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.3"
+    buildToolsVersion '26.0.2'
 
     def versionMajor = 1
     def versionMinor = 4
-    def versionPatch = 0
+    def versionPatch = 2
     def String versionInternal = versionMajor * 10000 + versionMinor * 100 + versionPatch
 
     defaultConfig {
         applicationId "net.lubot.strimbagz"
         minSdkVersion 21
         targetSdkVersion 25
-        versionCode 3121017
+        versionCode 3121019
         versionName "${versionMajor}.${versionMinor}.${versionPatch}"
         resConfigs "en"
     }
@@ -74,7 +73,6 @@ dependencies {
     //compile "com.android.support:mediarouter-v7:${supportLibVersion}"
     compile "com.android.support:support-v4:${supportLibVersion}"
     compile "com.android.support:leanback-v17:${supportLibVersion}"
-    compile "com.android.support:percent:${supportLibVersion}"
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
     compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.7.0'
@@ -97,12 +95,11 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.1.0'
     compile 'com.android.support:leanback-v17:25.1.0'
     testCompile 'junit:junit:4.12'
-    apt 'com.google.auto.value:auto-value:1.4.1'
-    apt 'com.ryanharter.auto.value:auto-value-moshi:0.4.3'
-    apt 'com.ryanharter.auto.value:auto-value-parcel:0.2.5'
-    annotationProcessor 'com.google.auto.value:auto-value:1.4'
+    annotationProcessor 'com.google.auto.value:auto-value:1.4.1'
+    annotationProcessor 'com.ryanharter.auto.value:auto-value-moshi:0.4.3'
+    annotationProcessor 'com.ryanharter.auto.value:auto-value-parcel:0.2.5'
     provided 'com.jakewharton.auto.value:auto-value-annotations:1.4'
-    provided 'com.ryanharter.auto.value:auto-value-moshi:0.4.3'
+    provided 'com.ryanharter.auto.value:auto-value-moshi-annotations:0.4.3'
 }
 
 apply plugin: 'com.google.gms.google-services'

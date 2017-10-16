@@ -35,12 +35,14 @@ public abstract class Stream implements Parcelable {
     public abstract String community();
     public abstract Channel channel();
     public abstract String created_at();
+    @Json(name = "stream_type")
+    public abstract String type();
 
     public static JsonAdapter<Stream> jsonAdapter(Moshi moshi) {
         return new AutoValue_Stream.MoshiJsonAdapter(moshi);
     }
 
     public static Stream createEmpty() {
-        return new AutoValue_Stream(0, StreamPreview.createEmpty(), "", Channel.createEmpty(), "2017-05-02T10:41:26Z");
+        return new AutoValue_Stream(0, StreamPreview.createEmpty(), "", Channel.createEmpty(), "2017-05-02T10:41:26Z", "live");
     }
 }

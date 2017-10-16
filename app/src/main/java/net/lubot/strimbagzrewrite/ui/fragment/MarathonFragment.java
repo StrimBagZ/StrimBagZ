@@ -109,6 +109,7 @@ public class MarathonFragment extends Fragment {
     private String horaroID = "";
     private String marathonName;
     private String marathonChannel;
+    private String marathonChannelName;
     private Stream twitchStream;
     private List<FollowedHosting.FollowedHosts> hostingChannels = new ArrayList<>();
 
@@ -168,6 +169,7 @@ public class MarathonFragment extends Fragment {
             }
             marathonName = remoteConfig.getString(Constants.MARATHON_NAME);
             marathonChannel = remoteConfig.getString(Constants.MARATHON_CHANNEL_ID);
+            marathonChannelName = remoteConfig.getString(Constants.MARATHON_CHANNEL);
         }
 
         if (usingHoraro) {
@@ -206,6 +208,7 @@ public class MarathonFragment extends Fragment {
             if (lastUpdate == 0 || gdqAdapter.getItemCount() == 0) {
                 Log.d("Marathon", "Loading GDQ schedule");
                 getGDQData();
+                getSpecificStream(marathonChannel);
                 return;
             }
             long timeDiff = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - lastUpdate);
@@ -371,8 +374,6 @@ public class MarathonFragment extends Fragment {
                     e.printStackTrace();
                 }
             }
-        } else {
-
         }
     }
 
@@ -433,7 +434,7 @@ public class MarathonFragment extends Fragment {
                                 streamView.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View view) {
-                                        if (!marathonChannel.equals("gamesdonequick")) {
+                                        if (!marathonChannel.equals("22510310")) {
                                             Utils.startMarathonPlayerActivity(activity, twitchStream, horaroID);
                                         } else {
                                             streamView.showContextMenu();
@@ -443,7 +444,7 @@ public class MarathonFragment extends Fragment {
                                 streamView.setOnCreateContextMenuListener(new View.OnCreateContextMenuListener() {
                                     @Override
                                     public void onCreateContextMenu(ContextMenu menu, View view, ContextMenu.ContextMenuInfo menuInfo) {
-                                        if (marathonChannel.equals("gamesdonequick")) {
+                                        if (marathonChannel.equals("22510310")) {
                                             SubMenu restreams = menu.addSubMenu("Open Restream");
                                             restreams.setHeaderTitle("Select Restream");
                                             restreams.add("LeFrenchRestream (Français)").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
@@ -473,18 +474,18 @@ public class MarathonFragment extends Fragment {
                                                     return true;
                                                 }
                                             });
-                                            restreams.add("SpeedrunsEspañol (Español)").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                                            restreams.add("Japanese_Restream (日本語)").setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                                                 @Override
                                                 public boolean onMenuItemClick(MenuItem menuItem) {
                                                     if (activity instanceof MainActivity) {
-                                                        ((MainActivity) activity).startStream("speedrunsespanol");
+                                                        ((MainActivity) activity).startStream("japanese_restream");
                                                     }
                                                     return true;
                                                 }
                                             });
                                         }
                                         if (hostingChannels != null && !hostingChannels.isEmpty()) {
-                                            if (marathonChannel.equals("gamesdonequick")) {
+                                            if (marathonChannel.equals("22510310")) {
                                                 menu.setHeaderTitle("Choose non-cancerous Chat");
                                             } else {
                                                 menu.setHeaderTitle("Choose hosted Chat");
@@ -541,7 +542,7 @@ public class MarathonFragment extends Fragment {
                             linearLayout.setClickable(false);
                             streamView.setClickable(false);
                             streamChannel.setText(channel.displayName());
-                            if (!marathonChannel.equals("gamesdonequick")) {
+                            if (!marathonChannel.equals("22510310")) {
                                 streamTitel.setText(channel.status());
                                 //streamTitel.setText(tickerAdapter.getName());
                             } else {
@@ -609,7 +610,7 @@ public class MarathonFragment extends Fragment {
         for (int i = 0, hostsSize = hosts.size(); i < hostsSize; i++) {
             FollowedHosting.FollowedHosts host = hosts.get(i);
             String name = host.target().channel().name();
-            if (name.equals(marathonChannel)) {
+            if (name.equals(marathonChannelName)) {
                 ArrayList<FollowedHosting.FollowedHosts> tmp = new ArrayList<>();
                 tmp.add(host);
                 for (int a = 0, size = hosts.size(); a < size; a++) {

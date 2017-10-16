@@ -29,6 +29,8 @@ import retrofit2.http.Query;
 public interface SpeedrunComService {
     @GET("games?max=1")
     Call<SRCGame> getGame(@Query("name") String name);
+    @GET("games/{gameID}/variables")
+    Call<Record> getVariables(@Path("gameID") String gameID);
     @GET("games/{gameID}/records?scope=full-game&embed=category,players")
     Call<Record> getRecords(@Path("gameID") String gameID);
 }

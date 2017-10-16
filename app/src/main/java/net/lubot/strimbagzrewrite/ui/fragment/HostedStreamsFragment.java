@@ -178,9 +178,7 @@ public class HostedStreamsFragment extends Fragment {
 
     private void prepareData(List<FollowedHosting.FollowedHosts> hosts) {
         ArrayList<FollowedHosting.FollowedHosts> result = new ArrayList<>();
-
         ArrayList<String> foundHosts = new ArrayList<>();
-        //ArrayList<Integer> foundHostsCounter = new ArrayList<>();
         for (int i = 0, hostsSize = hosts.size(); i < hostsSize; i++) {
             FollowedHosting.FollowedHosts host = hosts.get(i);
             String name = host.target().channel().name();
@@ -188,14 +186,12 @@ public class HostedStreamsFragment extends Fragment {
                 ArrayList<FollowedHosting.FollowedHosts> tmp = new ArrayList<>();
                 tmp.add(host);
                 foundHosts.add(name);
-                int hostCount = 1;
                 for (int a = 0, size = hosts.size(); a < size; a++) {
                     FollowedHosting.FollowedHosts otherHost = hosts.get(a);
                     // We don't want to compare to the original object
                     if (!host.equals(otherHost)) {
                         if (host.target().equals(otherHost.target())) {
                             Log.d("prepareData", "Found pair of host who both host " + host.target().channel().name());
-                            hostCount++;
                             tmp.add(otherHost);
                         }
                     } else {
@@ -216,7 +212,6 @@ public class HostedStreamsFragment extends Fragment {
                             host.display_name(), host.target(), null);
                 }
                 result.add(newHost);
-                //foundHostsCounter.add(hostCount);
             }
         }
         if (BuildConfig.DEBUG) {

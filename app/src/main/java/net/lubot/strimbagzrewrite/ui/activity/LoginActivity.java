@@ -24,15 +24,13 @@ import java.net.URISyntaxException;
 
 public class LoginActivity extends CActivity {
 
-    private WebView webView;
-
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        webView = (WebView) findViewById(R.id.loginWebView);
+        WebView webView = (WebView) findViewById(R.id.loginWebView);
         setSupportActionBar((Toolbar) findViewById(R.id.toolbar));
 
         ActionBar actionBar = getSupportActionBar();
@@ -49,31 +47,40 @@ public class LoginActivity extends CActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
-                if (url.startsWith(Constants.CALLBACK_URL)) {
-                    Log.d("shouldOverride", "Callback URL detected");
-                    Context context = view.getContext();
-                    try {
-                        Intent intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
-                        if (intent != null) {
-                            view.stopLoading();
-                            PackageManager manager = context.getPackageManager();
-                            ResolveInfo info = manager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
-                            if (info != null) {
-                                LoginActivity.this.finish();
-                                context.startActivity(intent);
-                            }
-                        }
-                    } catch (URISyntaxException e) {
-                        e.printStackTrace();
-                    }
-                    return true;
-                }
-                view.loadUrl(request.getUrl().toString());
-                return false;
+                return shouldOverrideUrl(view, url);
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return shouldOverrideUrl(view, url);
             }
         });
 
         webView.loadUrl(Constants.URL_TWITCH_AUTHENTICATION);
+    }
+
+    public boolean shouldOverrideUrl(WebView view, String url) {
+        if (url.startsWith(Constants.CALLBACK_URL)) {
+            Log.d("shouldOverride", "Callback URL detected");
+            Context context = view.getContext();
+            try {
+                Intent intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
+                if (intent != null) {
+                    view.stopLoading();
+                    PackageManager manager = context.getPackageManager();
+                    ResolveInfo info = manager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
+                    if (info != null) {
+                        LoginActivity.this.finish();
+                        context.startActivity(intent);
+                    }
+                }
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+            return true;
+        }
+        view.loadUrl(url);
+        return false;
     }
 
     @Override
